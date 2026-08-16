@@ -1,0 +1,2912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>LowPoly Rush: Infinite 3D Runner</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Rajdhani:wght@600;700;900&display=swap" rel="stylesheet">
+  
+  <style>
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      box-sizing: border-box;
+    }
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #0d1117;
+      font-family: 'Outfit', sans-serif;
+      touch-action: none;
+    }
+    .font-gaming {
+      font-family: 'Rajdhani', sans-serif;
+      letter-spacing: 0.05em;
+    }
+    .neon-text-cyan {
+      text-shadow: 0 0 10px rgba(6, 182, 212, 0.7), 0 0 20px rgba(6, 182, 212, 0.4);
+    }
+    .neon-text-amber {
+      text-shadow: 0 0 10px rgba(245, 158, 11, 0.7), 0 0 20px rgba(245, 158, 11, 0.4);
+    }
+    .neon-text-rose {
+      text-shadow: 0 0 10px rgba(244, 63, 94, 0.7), 0 0 20px rgba(244, 63, 94, 0.4);
+    }
+    .neon-box-cyan {
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.35), inset 0 0 15px rgba(6, 182, 212, 0.15);
+    }
+    .neon-box-amber {
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.35), inset 0 0 15px rgba(245, 158, 11, 0.15);
+    }
+    .glass-panel {
+      background: rgba(13, 17, 23, 0.82);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .touch-btn-active {
+      transform: scale(0.92);
+      filter: brightness(1.3);
+    }
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(1.03); }
+    }
+    .animate-pulse-slow {
+      animation: pulse-slow 2.5s infinite ease-in-out;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+    .animate-float {
+      animation: float 3s infinite ease-in-out;
+    }
+    @keyframes boss-flash {
+      0%, 100% { border-color: rgba(239, 68, 68, 0.8); box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); }
+      50% { border-color: rgba(245, 158, 11, 0.9); box-shadow: 0 0 35px rgba(245, 158, 11, 0.8); }
+    }
+    .animate-boss-glow {
+      animation: boss-flash 1s infinite ease-in-out;
+    }
+    /* Custom Scrollbar for Modals */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(6, 182, 212, 0.5);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(6, 182, 212, 0.8);
+    }
+  </style>
+</head>
+<body class="text-white select-none overflow-hidden">
+
+  <!-- 3D WebGL Canvas Container -->
+  <div id="canvas-container" class="absolute inset-0 z-0 w-full h-full"></div>
+
+  <!-- UI ROOT WRAPPER -->
+  <div id="ui-root" class="relative z-10 w-full h-full pointer-events-none flex flex-col justify-between p-4 sm:p-6">
+    
+    <!-- ==================== MAIN MENU SCREEN ==================== -->
+    <div id="menu-screen" class="pointer-events-auto absolute inset-0 z-30 flex flex-col justify-between p-6 sm:p-8 bg-gradient-to-t from-slate-950/90 via-slate-900/40 to-transparent transition-opacity duration-300">
+      <!-- Top Bar: Logo & Stats summary -->
+      <div class="flex justify-between items-start w-full">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-widest bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">Low-Poly 3D</span>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-widest bg-amber-500/20 text-amber-400 border border-amber-500/30">Roguelite</span>
+          </div>
+          <h1 class="font-gaming text-4xl sm:text-6xl md:text-7xl font-black italic tracking-tighter uppercase mt-1 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-200 to-amber-400 drop-shadow-md">
+            LOWPOLY RUSH
+          </h1>
+          <p class="text-slate-300 text-sm sm:text-base font-medium max-w-md mt-1 drop-shadow">
+            Infinite gravity-flipping 3D runner. Dodge obstacles, defeat mini-bosses, upgrade your runner!
+          </p>
+        </div>
+
+        <!-- Coins and Highscore widget -->
+        <div class="flex flex-col items-end space-y-2">
+          <div class="glass-panel px-4 py-2 rounded-2xl flex items-center space-x-2 border-amber-500/30 neon-box-amber">
+            <svg class="w-6 h-6 text-amber-400 animate-pulse-slow" fill="currentColor" viewBox="0 0 20 20">
+              <circle cx="10" cy="10" r="8" fill="#F59E0B"/>
+              <circle cx="10" cy="10" r="5" fill="#D97706"/>
+              <text x="10" y="13.5" font-size="9" font-weight="bold" text-anchor="middle" fill="#FEF3C7">$</text>
+            </svg>
+            <span id="menu-coins" class="font-gaming text-2xl font-bold text-amber-300">0</span>
+          </div>
+          <div class="glass-panel px-3 py-1.5 rounded-xl text-xs text-slate-300 flex items-center space-x-1">
+            <span>BEST:</span>
+            <span id="menu-highscore" class="font-bold text-cyan-400 font-gaming text-base">0 m</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center / Character Showcase Controls (Rotate / Skin switch buttons in menu) -->
+      <div class="flex justify-between items-center w-full max-w-xl mx-auto my-auto">
+        <button id="btn-prev-skin" class="p-3 glass-panel rounded-full hover:border-cyan-400 text-cyan-300 transition active:scale-90">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="text-center px-4 py-2 glass-panel rounded-2xl border-cyan-500/20">
+          <div class="text-xs uppercase tracking-widest text-slate-400">Selected Runner</div>
+          <div id="menu-skin-name" class="font-gaming text-2xl font-bold text-cyan-300">CYBER RUNNER</div>
+        </div>
+        <button id="btn-next-skin" class="p-3 glass-panel rounded-full hover:border-cyan-400 text-cyan-300 transition active:scale-90">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+
+      <!-- Bottom Action Hub -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
+        <!-- Secondary Navigation buttons -->
+        <div class="flex flex-wrap gap-2.5 justify-center sm:justify-start order-2 sm:order-1">
+          <button id="btn-open-shop" class="glass-panel px-5 py-3 rounded-2xl hover:bg-slate-800/80 hover:border-amber-400 transition-all font-gaming text-lg font-bold flex items-center space-x-2 text-amber-300">
+            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+            <span>SHOP</span>
+          </button>
+          <button id="btn-open-achievements" class="glass-panel px-5 py-3 rounded-2xl hover:bg-slate-800/80 hover:border-cyan-400 transition-all font-gaming text-lg font-bold flex items-center space-x-2 text-cyan-300">
+            <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+            <span>ACHIEVEMENTS</span>
+          </button>
+          <button id="btn-open-quests" class="glass-panel px-5 py-3 rounded-2xl hover:bg-slate-800/80 hover:border-emerald-400 transition-all font-gaming text-lg font-bold flex items-center space-x-2 text-emerald-300">
+            <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            <span>DAILY QUESTS</span>
+          </button>
+          <button id="btn-open-settings" class="glass-panel px-4 py-3 rounded-2xl hover:bg-slate-800/80 hover:border-slate-400 transition-all text-slate-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </button>
+          <button id="btn-open-tutorial" class="glass-panel px-4 py-3 rounded-2xl hover:bg-slate-800/80 hover:border-slate-400 transition-all text-slate-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </button>
+        </div>
+
+        <!-- Big Play Button -->
+        <button id="btn-play-game" class="w-full sm:w-auto order-1 sm:order-2 px-10 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-500 text-slate-950 font-gaming text-3xl font-black tracking-wider shadow-lg shadow-cyan-500/40 hover:shadow-cyan-400/60 hover:scale-105 active:scale-95 transition-all duration-200 uppercase flex items-center justify-center space-x-3">
+          <span>RUN NOW</span>
+          <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== IN-GAME HUD ==================== -->
+    <div id="hud-screen" class="hidden pointer-events-none absolute inset-0 z-20 flex flex-col justify-between p-4 sm:p-6">
+      
+      <!-- Top Row: Distance, Score, Multiplier, Coins, Boss Bar -->
+      <div class="flex flex-col w-full space-y-2">
+        <div class="flex justify-between items-start w-full">
+          <!-- Left: Distance & Multiplier -->
+          <div class="flex items-center space-x-3">
+            <div class="glass-panel px-4 py-2 rounded-2xl border-cyan-500/30 neon-box-cyan flex flex-col">
+              <span class="text-[10px] uppercase font-bold tracking-widest text-cyan-400">Distance</span>
+              <span id="hud-distance" class="font-gaming text-3xl sm:text-4xl font-black text-cyan-100 leading-none">0 <span class="text-lg text-cyan-400 font-normal">m</span></span>
+            </div>
+            
+            <div id="hud-combo-container" class="glass-panel px-3.5 py-2 rounded-2xl border-amber-500/40 neon-box-amber flex flex-col items-center transform transition-transform">
+              <span class="text-[10px] uppercase font-bold tracking-widest text-amber-400">Combo</span>
+              <span id="hud-multiplier" class="font-gaming text-2xl sm:text-3xl font-black text-amber-300 leading-none">x1</span>
+            </div>
+          </div>
+
+          <!-- Center: Boss Health (Hidden by default, shown during boss fights) -->
+          <div id="hud-boss-bar-container" class="hidden flex-1 max-w-sm mx-4 flex flex-col items-center">
+            <div class="flex justify-between w-full text-xs font-bold tracking-wider uppercase mb-1">
+              <span id="hud-boss-name" class="text-rose-400 font-gaming text-base animate-pulse">BOSS: SKY SENTINEL</span>
+              <span id="hud-boss-hp-text" class="text-rose-300">100%</span>
+            </div>
+            <div class="w-full h-3.5 bg-slate-900/90 rounded-full overflow-hidden border border-rose-500/50 p-0.5 animate-boss-glow">
+              <div id="hud-boss-hp-fill" class="h-full bg-gradient-to-r from-amber-500 via-rose-500 to-red-600 rounded-full transition-all duration-100" style="width: 100%;"></div>
+            </div>
+          </div>
+
+          <!-- Right: Coins & Pause button -->
+          <div class="flex items-center space-x-3 pointer-events-auto">
+            <div class="glass-panel px-3.5 py-2 rounded-2xl border-amber-500/30 flex items-center space-x-2">
+              <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                <circle cx="10" cy="10" r="8" fill="#F59E0B"/>
+                <circle cx="10" cy="10" r="5" fill="#D97706"/>
+                <text x="10" y="13.5" font-size="9" font-weight="bold" text-anchor="middle" fill="#FEF3C7">$</text>
+              </svg>
+              <span id="hud-coins" class="font-gaming text-2xl font-bold text-amber-300">0</span>
+            </div>
+
+            <button id="btn-pause-game" class="p-2.5 glass-panel rounded-2xl hover:border-slate-300 text-slate-300 hover:text-white transition active:scale-95">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Active Power-ups Bar -->
+        <div id="hud-powerups-list" class="flex items-center space-x-2">
+          <!-- Dynamically populated badges like [Magnet 6s], [Shield Active], [x2 Score 14s] -->
+        </div>
+      </div>
+
+      <!-- Center Banner Alerts (Boss Warning, Combo Streaks, Powerups) -->
+      <div id="hud-alert-banner" class="opacity-0 transform scale-90 transition-all duration-300 mx-auto text-center pointer-events-none py-2 px-6 rounded-2xl glass-panel">
+        <h2 id="hud-alert-title" class="font-gaming text-3xl sm:text-5xl font-black italic tracking-wider text-amber-400">PERFECT DODGE!</h2>
+        <p id="hud-alert-sub" class="text-xs sm:text-sm font-bold uppercase tracking-widest text-slate-200">Score Multiplier Increased</p>
+      </div>
+
+      <!-- Bottom Row: Nitro Boost Meter + Mobile Virtual Controls -->
+      <div class="flex flex-col w-full space-y-3">
+        <!-- Nitro Bar -->
+        <div class="flex items-center space-x-2 max-w-md mx-auto w-full">
+          <span class="text-xs font-gaming font-black text-cyan-400 tracking-wider">NITRO</span>
+          <div class="flex-1 h-3 bg-slate-950/80 rounded-full overflow-hidden border border-cyan-500/40 p-0.5">
+            <div id="hud-nitro-fill" class="h-full bg-gradient-to-r from-teal-400 via-cyan-400 to-blue-500 rounded-full transition-all duration-150" style="width: 50%;"></div>
+          </div>
+          <span id="hud-nitro-ready" class="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/40">READY [F]</span>
+        </div>
+
+        <!-- Touch Controls (Visible on mobile / touch devices or customizable in settings) -->
+        <div id="hud-touch-controls" class="pointer-events-auto flex justify-between items-end w-full pt-2">
+          <!-- Left side: Slide + Nitro buttons -->
+          <div class="flex items-center space-x-3">
+            <button id="touch-btn-slide" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl glass-panel border-amber-500/50 flex flex-col items-center justify-center font-gaming text-amber-300 font-bold active:bg-amber-500/30 transition shadow-lg">
+              <svg class="w-7 h-7 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+              <span class="text-xs">SLIDE</span>
+            </button>
+            <button id="touch-btn-nitro" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl glass-panel border-cyan-500/50 flex flex-col items-center justify-center font-gaming text-cyan-300 font-bold active:bg-cyan-500/30 transition shadow-lg">
+              <svg class="w-7 h-7 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              <span class="text-xs">BOOST</span>
+            </button>
+          </div>
+
+          <!-- Right side: Jump + Gravity Flip buttons -->
+          <div class="flex items-center space-x-3">
+            <button id="touch-btn-gravity" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl glass-panel border-purple-500/50 flex flex-col items-center justify-center font-gaming text-purple-300 font-bold active:bg-purple-500/30 transition shadow-lg">
+              <svg class="w-7 h-7 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
+              <span class="text-xs">GRAVITY</span>
+            </button>
+            <button id="touch-btn-jump" class="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-cyan-500/20 border-2 border-cyan-400 flex flex-col items-center justify-center font-gaming text-cyan-200 font-black active:bg-cyan-400/40 transition shadow-cyan-500/30 shadow-xl">
+              <svg class="w-8 h-8 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+              <span class="text-sm">JUMP</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== GAME OVER SCREEN ==================== -->
+    <div id="gameover-screen" class="hidden pointer-events-auto absolute inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+      <div class="glass-panel w-full max-w-md p-6 sm:p-8 rounded-3xl border-rose-500/30 shadow-2xl flex flex-col items-center text-center animate-pulse-slow">
+        <span class="px-3 py-1 bg-rose-500/20 text-rose-400 border border-rose-500/40 text-xs font-bold uppercase tracking-widest rounded-full">RUN FINISHED</span>
+        <h2 class="font-gaming text-5xl font-black italic text-rose-400 mt-2 mb-4">CRASHED!</h2>
+
+        <!-- Stats Card -->
+        <div class="w-full bg-slate-900/60 rounded-2xl p-4 border border-slate-800 space-y-3 mb-6">
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-slate-400 font-medium">Distance Traveled</span>
+            <span id="gameover-dist" class="font-gaming text-2xl font-bold text-cyan-300">0 m</span>
+          </div>
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-slate-400 font-medium">Final Score</span>
+            <span id="gameover-score" class="font-gaming text-2xl font-bold text-amber-300">0</span>
+          </div>
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-slate-400 font-medium">Coins Collected</span>
+            <span id="gameover-coins" class="font-gaming text-2xl font-bold text-amber-400">+0 $</span>
+          </div>
+          <div class="flex justify-between items-center text-sm pt-2 border-t border-slate-800">
+            <span class="text-slate-400 font-medium">Best Record</span>
+            <span id="gameover-best" class="font-gaming text-lg font-bold text-slate-200">0 m</span>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-3 w-full">
+          <button id="btn-gameover-menu" class="w-full py-3.5 rounded-2xl glass-panel hover:bg-slate-800 text-slate-300 font-gaming text-xl font-bold transition active:scale-95">
+            MAIN MENU
+          </button>
+          <button id="btn-gameover-retry" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-teal-400 text-slate-950 font-gaming text-2xl font-black tracking-wider shadow-lg shadow-cyan-500/40 hover:scale-105 active:scale-95 transition">
+            RETRY
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PAUSE MODAL ==================== -->
+    <div id="pause-screen" class="hidden pointer-events-auto absolute inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+      <div class="glass-panel w-full max-w-sm p-6 rounded-3xl border-slate-700 shadow-2xl flex flex-col items-center text-center">
+        <h2 class="font-gaming text-4xl font-black italic text-cyan-300 mb-6">GAME PAUSED</h2>
+        <div class="flex flex-col gap-3 w-full">
+          <button id="btn-resume-game" class="py-3.5 rounded-2xl bg-cyan-500 text-slate-950 font-gaming text-2xl font-black hover:bg-cyan-400 transition active:scale-95">
+            RESUME
+          </button>
+          <button id="btn-restart-game" class="py-3.5 rounded-2xl glass-panel hover:bg-slate-800 text-amber-300 font-gaming text-xl font-bold transition active:scale-95">
+            RESTART
+          </button>
+          <button id="btn-pause-menu" class="py-3.5 rounded-2xl glass-panel hover:bg-slate-800 text-slate-300 font-gaming text-xl font-bold transition active:scale-95">
+            QUIT TO MENU
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SHOP MODAL ==================== -->
+    <div id="shop-modal" class="hidden pointer-events-auto absolute inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+      <div class="glass-panel w-full max-w-2xl max-h-[90vh] p-6 rounded-3xl border-amber-500/30 flex flex-col justify-between shadow-2xl">
+        <!-- Header -->
+        <div class="flex justify-between items-center pb-4 border-b border-slate-800">
+          <div class="flex items-center space-x-3">
+            <h2 class="font-gaming text-3xl font-black text-amber-400">UPGRADES & SKINS</h2>
+            <div class="px-3 py-1 bg-amber-500/20 text-amber-300 font-gaming text-xl font-bold rounded-xl border border-amber-500/30 flex items-center space-x-1">
+              <span>$</span>
+              <span id="shop-coins-counter">0</span>
+            </div>
+          </div>
+          <button id="btn-close-shop" class="p-2 text-slate-400 hover:text-white rounded-xl glass-panel">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- Shop Tabs -->
+        <div class="flex space-x-2 mt-4 mb-3 border-b border-slate-800/80 pb-2">
+          <button id="tab-btn-upgrades" class="px-4 py-1.5 rounded-xl font-gaming text-lg font-bold text-cyan-300 bg-cyan-500/20 border border-cyan-500/40">UPGRADES</button>
+          <button id="tab-btn-skins" class="px-4 py-1.5 rounded-xl font-gaming text-lg font-bold text-slate-400 hover:text-slate-200">SKINS</button>
+          <button id="tab-btn-boosts" class="px-4 py-1.5 rounded-xl font-gaming text-lg font-bold text-slate-400 hover:text-slate-200">BOOSTS</button>
+        </div>
+
+        <!-- Content Container (Scrollable) -->
+        <div id="shop-items-container" class="flex-1 overflow-y-auto pr-1 space-y-3 max-h-[50vh]">
+          <!-- Injected via JS -->
+        </div>
+
+        <!-- Footer -->
+        <div class="pt-4 border-t border-slate-800 flex justify-end">
+          <button id="btn-done-shop" class="px-6 py-2.5 rounded-xl bg-amber-500 text-slate-950 font-gaming text-xl font-black hover:bg-amber-400 transition">
+            DONE
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== ACHIEVEMENTS MODAL ==================== -->
+    <div id="achievements-modal" class="hidden pointer-events-auto absolute inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+      <div class="glass-panel w-full max-w-xl max-h-[90vh] p-6 rounded-3xl border-cyan-500/30 flex flex-col justify-between shadow-2xl">
+        <div class="flex justify-between items-center pb-4 border-b border-slate-800">
+          <h2 class="font-gaming text-3xl font-black text-cyan-300">ACHIEVEMENTS</h2>
+          <button id="btn-close-achievements" class="p-2 text-slate-400 hover:text-white rounded-xl glass-panel">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        
+        <div id="achievements-list" class="flex-1 overflow-y-auto pr-1 space-y-3 my-4 max-h-[55vh]">
+          <!-- Injected via JS -->
+        </div>
+
+        <div class="pt-4 border-t border-slate-800 flex justify-end">
+          <button id="btn-done-achievements" class="px-6 py-2.5 rounded-xl bg-cyan-500 text-slate-950 font-gaming text-xl font-black hover:bg-cyan-400 transition">
+            CLOSE
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== DAILY QUESTS MODAL ==================== -->
+    <div id="quests-modal" class="hidden pointer-events-auto absolute inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+      <div class="glass-panel w-full max-w-lg max-h-[90vh] p-6 rounded-3xl border-emerald-500/30 flex flex-col justify-between shadow-2xl">
+        <div class="flex justify-between items-center pb-4 border-b border-slate-800">
+          <div>
+            <h2 class="font-gaming text-3xl font-black text-emerald-400">DAILY MISSIONS</h2>
+            <p class="text-xs text-slate-400">Resets every 24 hours. Complete to earn bonus gold!</p>
+          </div>
+          <button id="btn-close-quests" class="p-2 text-slate-400 hover:text-white rounded-xl glass-panel">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        
+        <div id="quests-list" class="flex-1 overflow-y-auto pr-1 space-y-3 my-4 max-h-[50vh]">
+          <!-- Injected via JS -->
+        </div>
+
+        <div class="pt-4 border-t border-slate-800 flex justify-end">
+          <button id="btn-done-quests" class="px-6 py-2.5 rounded-xl bg-emerald-500 text-slate-950 font-gaming text-xl font-black hover:bg-emerald-400 transition">
+            CLOSE
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SETTINGS MODAL ==================== -->
+    <div id="settings-modal" class="hidden pointer-events-auto absolute inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+      <div class="glass-panel w-full max-w-md p-6 rounded-3xl border-slate-700 shadow-2xl flex flex-col space-y-4">
+        <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+          <h2 class="font-gaming text-3xl font-black text-slate-200">SETTINGS</h2>
+          <button id="btn-close-settings" class="p-2 text-slate-400 hover:text-white rounded-xl glass-panel">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="space-y-4 text-sm">
+          <!-- Audio Volumes -->
+          <div>
+            <div class="flex justify-between text-xs font-bold text-slate-400 uppercase mb-1">
+              <span>Master Sound FX</span>
+              <span id="settings-sfx-val">80%</span>
+            </div>
+            <input id="slider-sfx-vol" type="range" min="0" max="100" value="80" class="w-full accent-cyan-400 cursor-pointer">
+          </div>
+
+          <div>
+            <div class="flex justify-between text-xs font-bold text-slate-400 uppercase mb-1">
+              <span>Synthwave Music</span>
+              <span id="settings-music-val">70%</span>
+            </div>
+            <input id="slider-music-vol" type="range" min="0" max="100" value="70" class="w-full accent-cyan-400 cursor-pointer">
+          </div>
+
+          <!-- Graphics Quality -->
+          <div>
+            <div class="text-xs font-bold text-slate-400 uppercase mb-1">Graphics Detail</div>
+            <div class="grid grid-cols-3 gap-2">
+              <button id="gfx-low" class="py-2 rounded-xl glass-panel text-xs font-bold hover:border-cyan-400">LOW (30 FPS)</button>
+              <button id="gfx-med" class="py-2 rounded-xl glass-panel text-xs font-bold hover:border-cyan-400">MED</button>
+              <button id="gfx-high" class="py-2 rounded-xl glass-panel text-xs font-bold border-cyan-400 text-cyan-300">HIGH (60 FPS)</button>
+            </div>
+          </div>
+
+          <!-- Touch Controls Visibility -->
+          <div class="flex justify-between items-center pt-2">
+            <div>
+              <div class="font-bold text-slate-200">On-Screen Buttons</div>
+              <div class="text-xs text-slate-400">Show virtual pads on mobile & touch</div>
+            </div>
+            <input id="toggle-touch-controls" type="checkbox" checked class="w-5 h-5 accent-cyan-400 cursor-pointer">
+          </div>
+
+          <!-- Reset Save Data -->
+          <div class="pt-2 border-t border-slate-800 flex justify-between items-center">
+            <span class="text-xs text-rose-400">Erase progress & reset</span>
+            <button id="btn-reset-save" class="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/40 rounded-xl text-rose-300 text-xs font-bold">
+              RESET DATA
+            </button>
+          </div>
+        </div>
+
+        <button id="btn-done-settings" class="w-full py-3 rounded-xl bg-cyan-500 text-slate-950 font-gaming text-xl font-black hover:bg-cyan-400 transition mt-2">
+          SAVE & CLOSE
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== TUTORIAL / HOW TO PLAY MODAL ==================== -->
+    <div id="tutorial-modal" class="hidden pointer-events-auto absolute inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+      <div class="glass-panel w-full max-w-lg p-6 rounded-3xl border-cyan-500/40 shadow-2xl flex flex-col space-y-4">
+        <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+          <h2 class="font-gaming text-3xl font-black text-cyan-300">HOW TO PLAY</h2>
+          <button id="btn-close-tutorial" class="p-2 text-slate-400 hover:text-white rounded-xl glass-panel">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="space-y-3 text-sm text-slate-300 overflow-y-auto max-h-[60vh] pr-1">
+          <div class="flex items-start space-x-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+            <div class="px-2.5 py-1 bg-cyan-500/20 text-cyan-300 font-bold rounded-lg border border-cyan-500/40 text-xs shrink-0">SPACE / ↑</div>
+            <div>
+              <div class="font-bold text-white">Variable Jump & Double Jump</div>
+              <div class="text-xs text-slate-400">Hold key/tap longer for higher jumps. Press again in air to double jump over large obstacles.</div>
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+            <div class="px-2.5 py-1 bg-amber-500/20 text-amber-300 font-bold rounded-lg border border-amber-500/40 text-xs shrink-0">S / ↓</div>
+            <div>
+              <div class="font-bold text-white">Slide Under Obstacles</div>
+              <div class="text-xs text-slate-400">Lowers hitbox to slip under high lasers, hovering barriers, and rotating crushers.</div>
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+            <div class="px-2.5 py-1 bg-purple-500/20 text-purple-300 font-bold rounded-lg border border-purple-500/40 text-xs shrink-0">SHIFT / G</div>
+            <div>
+              <div class="font-bold text-white">Gravity Inversion Flip</div>
+              <div class="text-xs text-slate-400">Instantly flip from floor to ceiling! Essential when the entire ground lane is blocked.</div>
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+            <div class="px-2.5 py-1 bg-teal-500/20 text-teal-300 font-bold rounded-lg border border-teal-500/40 text-xs shrink-0">CTRL / F</div>
+            <div>
+              <div class="font-bold text-white">Nitro Super Boost</div>
+              <div class="text-xs text-slate-400">Charge energy by collecting blue orbs & coins. Boosts speed & renders you invulnerable!</div>
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+            <div class="px-2.5 py-1 bg-rose-500/20 text-rose-300 font-bold rounded-lg border border-rose-500/40 text-xs shrink-0">500m BOSS</div>
+            <div>
+              <div class="font-bold text-white">Mini-Boss Encounters</div>
+              <div class="text-xs text-slate-400">Dodge boss attacks while your runner auto-fires plasma bolts. Huge loot drop upon victory!</div>
+            </div>
+          </div>
+        </div>
+
+        <button id="btn-done-tutorial" class="w-full py-3 rounded-xl bg-cyan-500 text-slate-950 font-gaming text-xl font-black hover:bg-cyan-400 transition">
+          GOT IT, LET'S PLAY!
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==================== GAME JAVASCRIPT ENGINE ==================== -->
+  <script>
+  /* -------------------------------------------------------------
+     LOWPOLY RUSH: INFINITE 3D RUNNER - FULL ENGINE CODE
+     ------------------------------------------------------------- */
+
+  // Global Config & Constants
+  const CONFIG = {
+    LANE_WIDTH: 2.8,
+    CHUNK_LENGTH: 50,
+    MAX_ACTIVE_CHUNKS: 5,
+    INITIAL_SPEED: 14.0,
+    MAX_SPEED: 32.0,
+    SPEED_ACCELERATION: 0.08, // per second
+    GRAVITY: 52.0,
+    JUMP_VELOCITY: 16.5,
+    MAX_JUMP_HOLD_TIME: 0.22,
+    DOUBLE_JUMP_VELOCITY: 15.0,
+    DOUBLE_JUMP_COOLDOWN: 1.5,
+    SLIDE_DURATION: 0.75,
+    SLIDE_HEIGHT: 0.7,
+    NORMAL_HEIGHT: 1.8,
+    NITRO_DURATION: 3.5,
+    NITRO_SPEED_MULTIPLIER: 1.6,
+    BOSS_INTERVAL_METERS: 400,
+    BIOME_INTERVAL_METERS: 650,
+    PARTICLE_POOL_SIZE: 150
+  };
+
+  // Biomes definitions
+  const BIOMES = [
+    {
+      name: "Neon Meadows",
+      skyColor: 0x0a192f,
+      fogColor: 0x0f2b48,
+      groundColor: 0x10b981,
+      accentColor: 0x06b6d4,
+      ceilingColor: 0x064e3b,
+      lightColor: 0x38bdf8,
+      hazardColor: 0xf59e0b
+    },
+    {
+      name: "Solar Dunes",
+      skyColor: 0x2e1065,
+      fogColor: 0x451a03,
+      groundColor: 0xd97706,
+      accentColor: 0xfbbf24,
+      ceilingColor: 0x78350f,
+      lightColor: 0xfef08a,
+      hazardColor: 0xef4444
+    },
+    {
+      name: "Glacial Peaks",
+      skyColor: 0x0f172a,
+      fogColor: 0x1e293b,
+      groundColor: 0x38bdf8,
+      accentColor: 0xa5f3fc,
+      ceilingColor: 0x0369a1,
+      lightColor: 0xe0f2fe,
+      hazardColor: 0xc084fc
+    },
+    {
+      name: "Cyber Volcano",
+      skyColor: 0x18000a,
+      fogColor: 0x3b0710,
+      groundColor: 0x7f1d1d,
+      accentColor: 0xf43f5e,
+      ceilingColor: 0x450a0a,
+      lightColor: 0xfca5a5,
+      hazardColor: 0xfacc15
+    }
+  ];
+
+  // Runner Skins
+  const SKINS = [
+    { id: 'cyber', name: 'CYBER RUNNER', price: 0, unlocked: true, colors: { body: 0x06b6d4, head: 0x0f172a, visor: 0x38bdf8, limbs: 0x1e293b, accent: 0xf59e0b } },
+    { id: 'ninja', name: 'NEON NINJA', price: 200, unlocked: false, colors: { body: 0x18181b, head: 0x09090b, visor: 0xf43f5e, limbs: 0x27272a, accent: 0xf43f5e } },
+    { id: 'solar', name: 'SOLAR KNIGHT', price: 450, unlocked: false, colors: { body: 0xf59e0b, head: 0xffedd5, visor: 0xfbbf24, limbs: 0x78350f, accent: 0xffffff } },
+    { id: 'frost', name: 'FROST VALKYRIE', price: 800, unlocked: false, colors: { body: 0x38bdf8, head: 0xf0fdf4, visor: 0xa7f3d0, limbs: 0x0284c7, accent: 0x67e8f9 } },
+    { id: 'glitch', name: 'VOID GLITCH', price: 1200, unlocked: false, colors: { body: 0x8b5cf6, head: 0x1e1b4b, visor: 0x4ade80, limbs: 0x4c1d95, accent: 0x22c55e } },
+    { id: 'gold', name: 'GOLD CHAMPION', price: 2500, unlocked: false, colors: { body: 0xeab308, head: 0xfef08a, visor: 0xffffff, limbs: 0xca8a04, accent: 0xfef08a } }
+  ];
+
+  // Upgrades List
+  const UPGRADES = [
+    { id: 'shield_start', name: 'Guardian Shield', desc: 'Start each run with an energy shield', maxLevel: 3, costs: [100, 250, 600], icon: '🛡️' },
+    { id: 'magnet_boost', name: 'Coin Magnetizer', desc: 'Increase magnet radius and duration', maxLevel: 4, costs: [75, 180, 400, 900], icon: '🧲' },
+    { id: 'nitro_eff', name: 'Hyper Nitro Tank', desc: 'Nitro fills faster & boosts longer', maxLevel: 4, costs: [90, 220, 500, 1000], icon: '⚡' },
+    { id: 'coin_multiplier', name: 'Gold Alchemy', desc: 'Increase value of gathered coins', maxLevel: 3, costs: [150, 400, 1000], icon: '💰' }
+  ];
+
+  // Achievements List
+  const ACHIEVEMENTS = [
+    { id: 'first_run', name: 'Cadet Launch', desc: 'Complete your first run', reward: 50, target: 1, key: 'runsCompleted' },
+    { id: 'dist_500', name: 'Distance Runner', desc: 'Reach 500 meters in a single run', reward: 100, target: 500, key: 'bestDistance' },
+    { id: 'dist_1500', name: 'Hyper Marathon', desc: 'Reach 1,500 meters in a single run', reward: 300, target: 1500, key: 'bestDistance' },
+    { id: 'coins_100', name: 'Coin Collector', desc: 'Collect 100 total gold coins', reward: 80, target: 100, key: 'totalCoins' },
+    { id: 'coins_1000', name: 'Treasure Tycoon', desc: 'Collect 1,000 total gold coins', reward: 400, target: 1000, key: 'totalCoins' },
+    { id: 'gravity_50', name: 'Newton Defier', desc: 'Perform 50 gravity flips', reward: 120, target: 50, key: 'totalGravityFlips' },
+    { id: 'boss_1', name: 'Boss Slayer', desc: 'Defeat your first Mini-Boss', reward: 150, target: 1, key: 'bossesDefeated' },
+    { id: 'boss_5', name: 'Drone Nemesis', desc: 'Defeat 5 Mini-Bosses', reward: 500, target: 5, key: 'bossesDefeated' },
+    { id: 'nitro_20', name: 'Speed Demon', desc: 'Activate Nitro Boost 20 times', reward: 120, target: 20, key: 'totalNitroUsed' },
+    { id: 'combo_5', name: 'Flow State', desc: 'Reach a 5x Combo Multiplier', reward: 150, target: 5, key: 'maxComboReached' }
+  ];
+
+  /* -------------------------------------------------------------
+     AUDIO MANAGER (Synthesized Web Audio API)
+     ------------------------------------------------------------- */
+  class AudioManager {
+    constructor() {
+      this.ctx = null;
+      this.sfxVolume = 0.8;
+      this.musicVolume = 0.7;
+      this.isMuted = false;
+      this.musicPlaying = false;
+      this.musicInterval = null;
+      this.currentBpm = 124;
+      this.step = 0;
+      this.synthScales = [
+        [220, 261.63, 293.66, 329.63, 392.00, 440], // Minor synth
+        [196, 220, 246.94, 293.66, 329.63, 392],    // Mixolydian
+        [174.61, 220, 261.63, 293.66, 349.23, 440]  // Dark
+      ];
+      this.scaleIndex = 0;
+      this.bossMusicMode = false;
+    }
+
+    init() {
+      if (!this.ctx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioContext();
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+    }
+
+    playSound(type) {
+      if (!this.ctx || this.isMuted || this.sfxVolume <= 0) return;
+      this.init();
+      const t = this.ctx.currentTime;
+      const vol = this.sfxVolume;
+
+      switch(type) {
+        case 'jump': {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(160, t);
+          osc.frequency.exponentialRampToValueAtTime(550, t + 0.15);
+          gain.gain.setValueAtTime(0.3 * vol, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.15);
+          break;
+        }
+        case 'double_jump': {
+          const osc1 = this.ctx.createOscillator();
+          const osc2 = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc1.type = 'sine';
+          osc2.type = 'triangle';
+          osc1.frequency.setValueAtTime(440, t);
+          osc1.frequency.exponentialRampToValueAtTime(880, t + 0.2);
+          osc2.frequency.setValueAtTime(554, t);
+          osc2.frequency.exponentialRampToValueAtTime(1108, t + 0.2);
+          gain.gain.setValueAtTime(0.3 * vol, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc1.start(t); osc2.start(t);
+          osc1.stop(t + 0.2); osc2.stop(t + 0.2);
+          break;
+        }
+        case 'slide': {
+          // Filtered noise swoosh
+          const bufferSize = this.ctx.sampleRate * 0.25;
+          const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+          const noise = this.ctx.createBufferSource();
+          noise.buffer = buffer;
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(1200, t);
+          filter.frequency.exponentialRampToValueAtTime(300, t + 0.25);
+          const gain = this.ctx.createGain();
+          gain.gain.setValueAtTime(0.25 * vol, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.ctx.destination);
+          noise.start(t);
+          break;
+        }
+        case 'coin': {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(987.77, t); // B5
+          osc.frequency.setValueAtTime(1318.51, t + 0.06); // E6
+          gain.gain.setValueAtTime(0.25 * vol, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.22);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.22);
+          break;
+        }
+        case 'gravity': {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(600, t);
+          osc.frequency.exponentialRampToValueAtTime(120, t + 0.28);
+          gain.gain.setValueAtTime(0.35 * vol, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.28);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.28);
+          break;
+        }
+        case 'nitro': {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(110, t);
+          osc.frequency.exponentialRampToValueAtTime(440, t + 0.4);
+          gain.gain.setValueAtTime(0.3 * vol, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.4);
+          break;
+        }
+        case 'powerup': {
+          const notes = [329.63, 440, 554.37, 659.25];
+          notes.forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, t + i * 0.06);
+            gain.gain.setValueAtTime(0.2 * vol, t + i * 0.06);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.06 + 0.25);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(t + i * 0.06);
+            osc.stop(t + i * 0.06 + 0.25);
+          });
+          break;
+        }
+        case 'hit':
+        case 'crash': {
+          const bufferSize = this.ctx.sampleRate * 0.4;
+          const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+          const noise = this.ctx.createBufferSource();
+          noise.buffer = buffer;
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(500, t);
+          filter.frequency.exponentialRampToValueAtTime(60, t + 0.4);
+          const gain = this.ctx.createGain();
+          gain.gain.setValueAtTime(0.5 * vol, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.ctx.destination);
+          noise.start(t);
+          break;
+        }
+        case 'laser': {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(880, t);
+          osc.frequency.exponentialRampToValueAtTime(110, t + 0.12);
+          gain.gain.setValueAtTime(0.2 * vol, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.12);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.12);
+          break;
+        }
+        case 'boss_alarm': {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(350, t);
+          osc.frequency.setValueAtTime(480, t + 0.15);
+          osc.frequency.setValueAtTime(350, t + 0.3);
+          gain.gain.setValueAtTime(0.3 * vol, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.45);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.45);
+          break;
+        }
+      }
+    }
+
+    startMusic() {
+      if (this.musicPlaying) return;
+      this.init();
+      this.musicPlaying = true;
+      this.step = 0;
+      this.scheduleMusicStep();
+    }
+
+    stopMusic() {
+      this.musicPlaying = false;
+      if (this.musicTimeout) clearTimeout(this.musicTimeout);
+    }
+
+    setMusicTempo(speed) {
+      // Scale BPM dynamically with runner speed: 120 up to 160 BPM
+      const norm = Math.min(1, Math.max(0, (speed - CONFIG.INITIAL_SPEED) / (CONFIG.MAX_SPEED - CONFIG.INITIAL_SPEED)));
+      this.currentBpm = 120 + norm * 40;
+    }
+
+    scheduleMusicStep() {
+      if (!this.musicPlaying) return;
+      const stepDuration = 60 / this.currentBpm / 4; // 16th note
+      if (this.ctx && this.musicVolume > 0 && !this.isMuted) {
+        const t = this.ctx.currentTime + 0.05;
+        this.playSequencerStep(this.step, t);
+      }
+      this.step = (this.step + 1) % 16;
+      this.musicTimeout = setTimeout(() => this.scheduleMusicStep(), stepDuration * 1000);
+    }
+
+    playSequencerStep(step, t) {
+      const vol = this.musicVolume * 0.22;
+      const scale = this.synthScales[this.scaleIndex % this.synthScales.length];
+
+      // Bass Kick on 0, 4, 8, 12
+      if (step % 4 === 0) {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.frequency.setValueAtTime(120, t);
+        osc.frequency.exponentialRampToValueAtTime(35, t + 0.12);
+        gain.gain.setValueAtTime(0.6 * vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.12);
+      }
+
+      // Snare on 4, 12
+      if (step === 4 || step === 12) {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(180, t);
+        gain.gain.setValueAtTime(0.2 * vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.1);
+      }
+
+      // Hi-hat on every odd step
+      if (step % 2 === 1) {
+        const bufferSize = this.ctx.sampleRate * 0.03;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'highpass';
+        filter.frequency.value = 7000;
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.12 * vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        noise.start(t);
+      }
+
+      // Bassline Synth Arp
+      if (step % 2 === 0 || this.bossMusicMode) {
+        const noteIdx = (step * 3 + (this.bossMusicMode ? 2 : 0)) % scale.length;
+        const freq = scale[noteIdx] * (this.bossMusicMode ? 0.75 : 0.5);
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = this.bossMusicMode ? 'sawtooth' : 'sawtooth';
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0.2 * vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.18);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.18);
+      }
+    }
+  }
+
+  /* -------------------------------------------------------------
+     SAVE MANAGER (LocalStorage + JSON State)
+     ------------------------------------------------------------- */
+  class SaveManager {
+    constructor() {
+      this.key = 'lowpoly_rush_savedata_v1';
+      this.data = this.getDefaults();
+      this.load();
+    }
+
+    getDefaults() {
+      return {
+        coins: 0,
+        bestDistance: 0,
+        runsCompleted: 0,
+        totalCoins: 0,
+        totalGravityFlips: 0,
+        bossesDefeated: 0,
+        totalNitroUsed: 0,
+        maxComboReached: 1,
+        selectedSkin: 'cyber',
+        unlockedSkins: ['cyber'],
+        upgrades: {
+          shield_start: 0,
+          magnet_boost: 0,
+          nitro_eff: 0,
+          coin_multiplier: 0
+        },
+        boosts: {
+          head_start: false,
+          score_booster: false
+        },
+        achievementsClaimed: [],
+        questDate: '',
+        questProgress: [0, 0, 0],
+        questClaimed: [false, false, false],
+        settings: {
+          sfxVolume: 80,
+          musicVolume: 70,
+          quality: 'high',
+          showTouchControls: true
+        }
+      };
+    }
+
+    load() {
+      try {
+        const raw = localStorage.getItem(this.key);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          this.data = Object.assign(this.getDefaults(), parsed);
+        }
+      } catch (e) {
+        console.warn('LocalStorage load failed, using defaults', e);
+      }
+    }
+
+    save() {
+      try {
+        localStorage.setItem(this.key, JSON.stringify(this.data));
+      } catch (e) {
+        console.warn('LocalStorage save failed', e);
+      }
+    }
+
+    reset() {
+      this.data = this.getDefaults();
+      this.save();
+    }
+  }
+
+  /* -------------------------------------------------------------
+     PARTICLE SYSTEM (Optimized Object Pool)
+     ------------------------------------------------------------- */
+  class ParticlePool {
+    constructor(scene) {
+      this.scene = scene;
+      this.particles = [];
+      this.geo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+      this.mat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.9 });
+      
+      // Initialize pool
+      for (let i = 0; i < CONFIG.PARTICLE_POOL_SIZE; i++) {
+        const p = new THREE.Mesh(this.geo, this.mat.clone());
+        p.visible = false;
+        p.active = false;
+        p.velocity = new THREE.Vector3();
+        p.life = 0;
+        p.maxLife = 1;
+        p.baseScale = 1;
+        this.scene.add(p);
+        this.particles.push(p);
+      }
+    }
+
+    spawn(x, y, z, count = 8, color = 0x06b6d4, speed = 4, size = 0.25, life = 0.5) {
+      let spawned = 0;
+      for (let i = 0; i < this.particles.length && spawned < count; i++) {
+        const p = this.particles[i];
+        if (!p.active) {
+          p.active = true;
+          p.visible = true;
+          p.position.set(x, y, z);
+          p.material.color.setHex(color);
+          p.material.opacity = 1;
+          p.life = life;
+          p.maxLife = life;
+          p.baseScale = size;
+          p.scale.set(size, size, size);
+          
+          p.velocity.set(
+            (Math.random() - 0.5) * speed,
+            (Math.random() - 0.5) * speed + 1,
+            (Math.random() - 0.5) * speed
+          );
+          spawned++;
+        }
+      }
+    }
+
+    update(dt) {
+      for (let i = 0; i < this.particles.length; i++) {
+        const p = this.particles[i];
+        if (p.active) {
+          p.life -= dt;
+          if (p.life <= 0) {
+            p.active = false;
+            p.visible = false;
+          } else {
+            p.position.addScaledVector(p.velocity, dt);
+            const progress = p.life / p.maxLife;
+            p.material.opacity = progress;
+            const s = p.baseScale * progress;
+            p.scale.set(s, s, s);
+          }
+        }
+      }
+    }
+  }
+
+  /* -------------------------------------------------------------
+     PROCEDURAL 3D PLAYER MODEL & RIG
+     ------------------------------------------------------------- */
+  class PlayerModel {
+    constructor(scene) {
+      this.scene = scene;
+      this.group = new THREE.Group();
+
+      // Materials (Low poly flat shaded)
+      this.materials = {
+        body: new THREE.MeshStandardMaterial({ color: 0x06b6d4, roughness: 0.4, flatShading: true }),
+        head: new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3, flatShading: true }),
+        visor: new THREE.MeshBasicMaterial({ color: 0x38bdf8 }),
+        limbs: new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5, flatShading: true }),
+        accent: new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.2, flatShading: true })
+      };
+
+      this.buildModel();
+      this.scene.add(this.group);
+    }
+
+    buildModel() {
+      // Clear previous children if any
+      while(this.group.children.length > 0) {
+        this.group.remove(this.group.children[0]);
+      }
+
+      // Torso
+      const torsoGeo = new THREE.BoxGeometry(0.65, 0.8, 0.4);
+      this.torso = new THREE.Mesh(torsoGeo, this.materials.body);
+      this.torso.position.y = 0.9;
+      this.group.add(this.torso);
+
+      // Jetpack / Backpack
+      const jetGeo = new THREE.BoxGeometry(0.45, 0.55, 0.25);
+      this.jetpack = new THREE.Mesh(jetGeo, this.materials.accent);
+      this.jetpack.position.set(0, 0, -0.3);
+      this.torso.add(this.jetpack);
+
+      // Jetpack Thrusters
+      const thrusterGeo = new THREE.CylinderGeometry(0.08, 0.12, 0.2, 6);
+      const t1 = new THREE.Mesh(thrusterGeo, this.materials.limbs);
+      t1.position.set(-0.14, -0.32, 0);
+      const t2 = new THREE.Mesh(thrusterGeo, this.materials.limbs);
+      t2.position.set(0.14, -0.32, 0);
+      this.jetpack.add(t1);
+      this.jetpack.add(t2);
+
+      // Head
+      const headGeo = new THREE.BoxGeometry(0.42, 0.42, 0.42);
+      this.head = new THREE.Mesh(headGeo, this.materials.head);
+      this.head.position.y = 0.65;
+      this.torso.add(this.head);
+
+      // Visor
+      const visorGeo = new THREE.BoxGeometry(0.36, 0.16, 0.12);
+      this.visor = new THREE.Mesh(visorGeo, this.materials.visor);
+      this.visor.position.set(0, 0.02, 0.2);
+      this.head.add(this.visor);
+
+      // Arms (Pivots at shoulders)
+      const armGeo = new THREE.BoxGeometry(0.18, 0.6, 0.18);
+      armGeo.translate(0, -0.25, 0);
+
+      this.leftArmPivot = new THREE.Group();
+      this.leftArmPivot.position.set(-0.44, 0.3, 0);
+      this.leftArm = new THREE.Mesh(armGeo, this.materials.limbs);
+      this.leftArmPivot.add(this.leftArm);
+      this.torso.add(this.leftArmPivot);
+
+      this.rightArmPivot = new THREE.Group();
+      this.rightArmPivot.position.set(0.44, 0.3, 0);
+      this.rightArm = new THREE.Mesh(armGeo, this.materials.limbs);
+      this.rightArmPivot.add(this.rightArm);
+      this.torso.add(this.rightArmPivot);
+
+      // Legs (Pivots at hips)
+      const legGeo = new THREE.BoxGeometry(0.22, 0.7, 0.22);
+      legGeo.translate(0, -0.3, 0);
+
+      this.leftLegPivot = new THREE.Group();
+      this.leftLegPivot.position.set(-0.2, -0.35, 0);
+      this.leftLeg = new THREE.Mesh(legGeo, this.materials.limbs);
+      this.leftLegPivot.add(this.leftLeg);
+      this.torso.add(this.leftLegPivot);
+
+      this.rightLegPivot = new THREE.Group();
+      this.rightLegPivot.position.set(0.2, -0.35, 0);
+      this.rightLeg = new THREE.Mesh(legGeo, this.materials.limbs);
+      this.rightLegPivot.add(this.rightLeg);
+      this.torso.add(this.rightLegPivot);
+
+      // Shield Sphere mesh (Transparent glowing outer dome)
+      const shieldGeo = new THREE.IcosahedronGeometry(1.2, 2);
+      this.shieldMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.35, wireframe: true });
+      this.shieldMesh = new THREE.Mesh(shieldGeo, this.shieldMat);
+      this.shieldMesh.position.y = 0.9;
+      this.shieldMesh.visible = false;
+      this.group.add(this.shieldMesh);
+    }
+
+    applySkin(skinConfig) {
+      const colors = skinConfig.colors;
+      this.materials.body.color.setHex(colors.body);
+      this.materials.head.color.setHex(colors.head);
+      this.materials.visor.color.setHex(colors.visor);
+      this.materials.limbs.color.setHex(colors.limbs);
+      this.materials.accent.color.setHex(colors.accent);
+    }
+
+    animate(state, time, speedFactor) {
+      const runFreq = time * 14 * speedFactor;
+      
+      // Pulse Shield
+      if (this.shieldMesh.visible) {
+        this.shieldMesh.rotation.y += 0.02;
+        this.shieldMesh.rotation.x += 0.01;
+      }
+
+      if (state.isDead) {
+        this.torso.rotation.x = Math.PI / 2;
+        this.leftArmPivot.rotation.x = -Math.PI / 3;
+        this.rightArmPivot.rotation.x = -Math.PI / 3;
+        return;
+      }
+
+      if (state.isSliding) {
+        // Sliding posture
+        this.torso.position.y = 0.35;
+        this.torso.rotation.x = -Math.PI / 3;
+        this.head.rotation.x = Math.PI / 4;
+        this.leftLegPivot.rotation.x = -Math.PI / 3;
+        this.rightLegPivot.rotation.x = -Math.PI / 3;
+        this.leftArmPivot.rotation.x = Math.PI / 3;
+        this.rightArmPivot.rotation.x = Math.PI / 3;
+      } else if (!state.isGrounded) {
+        // Jump / Airborne posture
+        this.torso.position.y = 0.9;
+        this.torso.rotation.x = -0.15;
+        this.leftArmPivot.rotation.x = -Math.PI / 1.5;
+        this.rightArmPivot.rotation.x = -Math.PI / 1.5;
+        this.leftLegPivot.rotation.x = 0.6;
+        this.rightLegPivot.rotation.x = -0.4;
+      } else {
+        // Normal Running cycle
+        this.torso.position.y = 0.9 + Math.abs(Math.sin(runFreq)) * 0.12;
+        this.torso.rotation.x = 0.15; // slight forward sprint lean
+        this.torso.rotation.y = Math.sin(runFreq * 0.5) * 0.08;
+        this.head.rotation.x = -0.1;
+
+        // Limb swinging
+        const swing = Math.sin(runFreq) * 0.85;
+        this.leftArmPivot.rotation.x = swing;
+        this.rightArmPivot.rotation.x = -swing;
+        this.leftLegPivot.rotation.x = -swing;
+        this.rightLegPivot.rotation.x = swing;
+      }
+    }
+  }
+
+  /* -------------------------------------------------------------
+     PLAYER LOGIC & CONTROLLER
+     ------------------------------------------------------------- */
+  class Player {
+    constructor(scene, particles, audio) {
+      this.scene = scene;
+      this.particles = particles;
+      this.audio = audio;
+      this.model = new PlayerModel(scene);
+
+      this.currentLane = 1; // 0 = Left, 1 = Center, 2 = Right
+      this.targetX = 0;
+      this.x = 0;
+      this.y = 0;
+      this.z = 0;
+      this.vy = 0;
+
+      this.gravityDirection = 1; // 1 = floor running, -1 = ceiling running
+      this.isGrounded = true;
+      this.isSliding = false;
+      this.slideTimer = 0;
+      this.isJumping = false;
+      this.jumpHoldTimer = 0;
+      this.canDoubleJump = true;
+      this.doubleJumpCooldown = 0;
+
+      this.hasShield = false;
+      this.magnetTimer = 0;
+      this.multiplierTimer = 0;
+      this.slowmoTimer = 0;
+      this.invulnerableTimer = 0;
+
+      this.nitroEnergy = 50; // 0 to 100
+      this.isNitroActive = false;
+      this.nitroTimer = 0;
+
+      this.isDead = false;
+      this.combo = 1;
+      this.comboScoreStreak = 0;
+
+      // Projectiles (for attacking mini-boss)
+      this.projectiles = [];
+      this.shootCooldown = 0;
+    }
+
+    reset(startWithShield = false) {
+      this.currentLane = 1;
+      this.targetX = 0;
+      this.x = 0;
+      this.y = 0;
+      this.z = 0;
+      this.vy = 0;
+      this.gravityDirection = 1;
+      this.model.group.rotation.z = 0;
+      this.isGrounded = true;
+      this.isSliding = false;
+      this.slideTimer = 0;
+      this.isJumping = false;
+      this.jumpHoldTimer = 0;
+      this.canDoubleJump = true;
+      this.doubleJumpCooldown = 0;
+      
+      this.hasShield = startWithShield;
+      this.model.shieldMesh.visible = startWithShield;
+      this.magnetTimer = 0;
+      this.multiplierTimer = 0;
+      this.slowmoTimer = 0;
+      this.invulnerableTimer = 0;
+      this.nitroEnergy = 40;
+      this.isNitroActive = false;
+      this.nitroTimer = 0;
+      this.isDead = false;
+      this.combo = 1;
+      this.comboScoreStreak = 0;
+
+      // Clean projectiles
+      for (const p of this.projectiles) this.scene.remove(p.mesh);
+      this.projectiles = [];
+    }
+
+    setLane(lane) {
+      if (this.isDead) return;
+      this.currentLane = Math.max(0, Math.min(2, lane));
+      this.targetX = (this.currentLane - 1) * CONFIG.LANE_WIDTH;
+    }
+
+    jump(startJump = true) {
+      if (this.isDead) return;
+      if (startJump) {
+        if (this.isGrounded) {
+          this.vy = CONFIG.JUMP_VELOCITY * this.gravityDirection;
+          this.isGrounded = false;
+          this.isJumping = true;
+          this.jumpHoldTimer = CONFIG.MAX_JUMP_HOLD_TIME;
+          this.audio.playSound('jump');
+          this.particles.spawn(this.x, this.y, this.z, 6, 0x06b6d4, 2);
+        } else if (this.canDoubleJump && this.doubleJumpCooldown <= 0) {
+          this.vy = CONFIG.DOUBLE_JUMP_VELOCITY * this.gravityDirection;
+          this.canDoubleJump = false;
+          this.doubleJumpCooldown = CONFIG.DOUBLE_JUMP_COOLDOWN;
+          this.audio.playSound('double_jump');
+          this.particles.spawn(this.x, this.y + 0.5, this.z, 12, 0x38bdf8, 3.5);
+        }
+      } else {
+        // Released jump button
+        this.isJumping = false;
+      }
+    }
+
+    slide() {
+      if (this.isDead) return;
+      if (!this.isSliding) {
+        this.isSliding = true;
+        this.slideTimer = CONFIG.SLIDE_DURATION;
+        this.audio.playSound('slide');
+        this.particles.spawn(this.x, this.y, this.z, 8, 0xf59e0b, 3);
+        
+        // Fast drop if in air
+        if (!this.isGrounded) {
+          this.vy = -CONFIG.JUMP_VELOCITY * 1.3 * this.gravityDirection;
+        }
+      }
+    }
+
+    flipGravity() {
+      if (this.isDead) return;
+      this.gravityDirection *= -1;
+      this.isGrounded = false;
+      this.vy = this.gravityDirection * 6.0; // slight push towards ceiling/floor
+      this.audio.playSound('gravity');
+      this.particles.spawn(this.x, this.y + 0.9, this.z, 15, 0xa855f7, 4);
+    }
+
+    activateNitro() {
+      if (this.isDead || this.isNitroActive || this.nitroEnergy < 30) return;
+      this.isNitroActive = true;
+      this.nitroTimer = CONFIG.NITRO_DURATION;
+      this.invulnerableTimer = CONFIG.NITRO_DURATION;
+      this.nitroEnergy = 0;
+      this.audio.playSound('nitro');
+      this.particles.spawn(this.x, this.y + 0.9, this.z - 0.5, 25, 0x06b6d4, 6);
+    }
+
+    shootBlaster() {
+      if (this.isDead) return;
+      const geo = new THREE.CylinderGeometry(0.08, 0.08, 0.8, 6);
+      geo.rotateX(Math.PI / 2);
+      const mat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(this.x, this.y + (this.gravityDirection === 1 ? 0.9 : 4.1), this.z + 1.2);
+      this.scene.add(mesh);
+      this.projectiles.push({ mesh, speed: 65, life: 1.2 });
+      this.audio.playSound('laser');
+    }
+
+    update(dt, worldSpeed) {
+      if (this.isDead) {
+        this.model.animate({ isDead: true }, 0, 1);
+        return;
+      }
+
+      // Smooth Lane Interpolation (Lerp)
+      this.x += (this.targetX - this.x) * 14 * dt;
+
+      // Variable Jump Hold boost
+      if (this.isJumping && this.jumpHoldTimer > 0) {
+        this.jumpHoldTimer -= dt;
+        this.vy += CONFIG.GRAVITY * 0.45 * this.gravityDirection * dt;
+      }
+
+      // Physics & Gravity
+      const currentGravity = CONFIG.GRAVITY * this.gravityDirection;
+      this.vy -= currentGravity * dt;
+      this.y += this.vy * dt;
+
+      // Floor & Ceiling Collision bounds (Track corridor is Y: 0 to Y: 5.0)
+      const floorY = 0;
+      const ceilingY = 5.0 - CONFIG.NORMAL_HEIGHT;
+
+      if (this.gravityDirection === 1) { // Floor mode
+        if (this.y <= floorY) {
+          this.y = floorY;
+          this.vy = 0;
+          this.isGrounded = true;
+          this.canDoubleJump = true;
+        }
+      } else { // Ceiling mode
+        if (this.y >= ceilingY) {
+          this.y = ceilingY;
+          this.vy = 0;
+          this.isGrounded = true;
+          this.canDoubleJump = true;
+        }
+      }
+
+      // Slide Timer
+      if (this.isSliding) {
+        this.slideTimer -= dt;
+        if (this.slideTimer <= 0) {
+          this.isSliding = false;
+        }
+      }
+
+      // Double jump cooldown
+      if (this.doubleJumpCooldown > 0) {
+        this.doubleJumpCooldown -= dt;
+      }
+
+      // Power-up Timers
+      if (this.magnetTimer > 0) this.magnetTimer -= dt;
+      if (this.multiplierTimer > 0) this.multiplierTimer -= dt;
+      if (this.slowmoTimer > 0) this.slowmoTimer -= dt;
+      if (this.invulnerableTimer > 0) this.invulnerableTimer -= dt;
+
+      // Nitro boost Timer & Recharge
+      if (this.isNitroActive) {
+        this.nitroTimer -= dt;
+        this.particles.spawn(this.x + (Math.random() - 0.5) * 0.3, this.y + 0.9, this.z - 0.4, 2, 0x06b6d4, 1.5, 0.15, 0.2);
+        if (this.nitroTimer <= 0) {
+          this.isNitroActive = false;
+        }
+      } else {
+        this.nitroEnergy = Math.min(100, this.nitroEnergy + dt * 4.0);
+      }
+
+      // Smooth Rotation for Gravity Flip
+      const targetRotZ = this.gravityDirection === 1 ? 0 : Math.PI;
+      this.model.group.rotation.z += (targetRotZ - this.model.group.rotation.z) * 12 * dt;
+
+      // Position update
+      this.model.group.position.set(this.x, this.y, this.z);
+
+      // Model Procedural Animation
+      this.model.shieldMesh.visible = this.hasShield;
+      this.model.animate({
+        isGrounded: this.isGrounded,
+        isSliding: this.isSliding,
+        isDead: this.isDead
+      }, performance.now() * 0.001, (worldSpeed / CONFIG.INITIAL_SPEED));
+
+      // Update Projectiles
+      for (let i = this.projectiles.length - 1; i >= 0; i--) {
+        const p = this.projectiles[i];
+        p.life -= dt;
+        p.mesh.position.z += p.speed * dt;
+        if (p.life <= 0) {
+          this.scene.remove(p.mesh);
+          this.projectiles.splice(i, 1);
+        }
+      }
+    }
+
+    getHitbox() {
+      const height = this.isSliding ? CONFIG.SLIDE_HEIGHT : CONFIG.NORMAL_HEIGHT;
+      const yCenter = this.gravityDirection === 1 
+        ? this.y + height * 0.5 
+        : this.y + CONFIG.NORMAL_HEIGHT - height * 0.5;
+      
+      return {
+        minX: this.x - 0.4,
+        maxX: this.x + 0.4,
+        minY: yCenter - height * 0.5,
+        maxY: yCenter + height * 0.5,
+        minZ: this.z - 0.35,
+        maxZ: this.z + 0.35
+      };
+    }
+  }
+
+  /* -------------------------------------------------------------
+     MINI-BOSS SYSTEM
+     ------------------------------------------------------------- */
+  class MiniBoss {
+    constructor(scene, particles, audio) {
+      this.scene = scene;
+      this.particles = particles;
+      this.audio = audio;
+      this.active = false;
+      this.hp = 100;
+      this.maxHp = 100;
+      this.name = "SKY SENTINEL";
+      this.group = new THREE.Group();
+      this.zDistance = 32; // stays in front of runner
+      this.time = 0;
+      this.attackTimer = 0;
+      this.attacksFired = 0;
+      this.bossProjectiles = [];
+
+      this.buildModel();
+      this.scene.add(this.group);
+      this.group.visible = false;
+    }
+
+    buildModel() {
+      // Low-poly Drone Sentinel
+      const coreGeo = new THREE.OctahedronGeometry(1.6, 0);
+      const coreMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3, flatShading: true });
+      this.core = new THREE.Mesh(coreGeo, coreMat);
+      this.group.add(this.core);
+
+      // Rotating Ring
+      const ringGeo = new THREE.TorusGeometry(2.4, 0.2, 6, 16);
+      const ringMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5, flatShading: true });
+      this.ring = new THREE.Mesh(ringGeo, ringMat);
+      this.group.add(this.ring);
+
+      // Dual Plasma Cannons
+      const cannonGeo = new THREE.BoxGeometry(0.4, 0.4, 1.2);
+      const cannonMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b });
+      this.cannonL = new THREE.Mesh(cannonGeo, cannonMat);
+      this.cannonL.position.set(-1.8, 0, 0);
+      this.cannonR = new THREE.Mesh(cannonGeo, cannonMat);
+      this.cannonR.position.set(1.8, 0, 0);
+      this.group.add(this.cannonL);
+      this.group.add(this.cannonR);
+
+      // Eye Visor
+      const eyeGeo = new THREE.SphereGeometry(0.5, 8, 8);
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+      this.eye = new THREE.Mesh(eyeGeo, eyeMat);
+      this.eye.position.set(0, 0, -1.2);
+      this.group.add(this.eye);
+    }
+
+    spawn(playerZ, biomeIndex = 0) {
+      this.active = true;
+      this.hp = 100;
+      this.maxHp = 100;
+      this.time = 0;
+      this.attackTimer = 1.5;
+      this.attacksFired = 0;
+      this.group.visible = true;
+
+      const names = ["SKY SENTINEL", "SOLAR ANNIHILATOR", "FROST DREADNOUGHT", "MAGMA BEHEMOTH"];
+      this.name = names[biomeIndex % names.length];
+
+      this.group.position.set(0, 2.5, playerZ + this.zDistance);
+      this.audio.playSound('boss_alarm');
+    }
+
+    takeDamage(amount) {
+      if (!this.active) return false;
+      this.hp -= amount;
+      this.particles.spawn(this.group.position.x, this.group.position.y, this.group.position.z, 10, 0xf59e0b, 5);
+      
+      if (this.hp <= 0) {
+        this.hp = 0;
+        this.defeat();
+        return true;
+      }
+      return false;
+    }
+
+    defeat() {
+      this.active = false;
+      this.group.visible = false;
+      this.particles.spawn(this.group.position.x, this.group.position.y, this.group.position.z, 40, 0xef4444, 10, 0.4, 1.2);
+      this.audio.playSound('crash');
+
+      // Clear projectiles
+      for (const p of this.bossProjectiles) this.scene.remove(p.mesh);
+      this.bossProjectiles = [];
+    }
+
+    update(dt, player, onPlayerHit) {
+      if (!this.active) return;
+      this.time += dt;
+
+      // Keep pace in front of player
+      const targetZ = player.z + this.zDistance;
+      this.group.position.z = targetZ;
+
+      // Sine wave hovering motion across lanes
+      const hoverX = Math.sin(this.time * 1.8) * (CONFIG.LANE_WIDTH * 1.1);
+      const hoverY = 2.5 + Math.cos(this.time * 2.5) * 0.8;
+      this.group.position.x += (hoverX - this.group.position.x) * 6 * dt;
+      this.group.position.y += (hoverY - this.group.position.y) * 6 * dt;
+
+      // Rotations
+      this.core.rotation.y += 1.5 * dt;
+      this.ring.rotation.z += 2.0 * dt;
+      this.ring.rotation.x = Math.sin(this.time) * 0.3;
+
+      // Auto-shoot boss logic
+      player.shootCooldown -= dt;
+      if (player.shootCooldown <= 0) {
+        player.shootBlaster();
+        player.shootCooldown = 0.28;
+      }
+
+      // Attack Pattern: Fires plasma spheres at player lane
+      this.attackTimer -= dt;
+      if (this.attackTimer <= 0) {
+        this.attackTimer = 1.6;
+        this.fireAttack(player);
+      }
+
+      // Check player projectiles hitting boss
+      const bossHitbox = {
+        minX: this.group.position.x - 2.2,
+        maxX: this.group.position.x + 2.2,
+        minY: this.group.position.y - 1.8,
+        maxY: this.group.position.y + 1.8,
+        minZ: this.group.position.z - 1.5,
+        maxZ: this.group.position.z + 1.5
+      };
+
+      for (let i = player.projectiles.length - 1; i >= 0; i--) {
+        const p = player.projectiles[i];
+        const pPos = p.mesh.position;
+        if (pPos.x >= bossHitbox.minX && pPos.x <= bossHitbox.maxX &&
+            pPos.y >= bossHitbox.minY && pPos.y <= bossHitbox.maxY &&
+            pPos.z >= bossHitbox.minZ && pPos.z <= bossHitbox.maxZ) {
+          this.takeDamage(12);
+          this.scene.remove(p.mesh);
+          player.projectiles.splice(i, 1);
+        }
+      }
+
+      // Update & check boss projectiles hitting player
+      const pHitbox = player.getHitbox();
+      for (let i = this.bossProjectiles.length - 1; i >= 0; i--) {
+        const bp = this.bossProjectiles[i];
+        bp.mesh.position.z -= bp.speed * dt;
+        bp.mesh.rotation.y += 5 * dt;
+
+        // Check player collision
+        const pos = bp.mesh.position;
+        if (pos.z <= pHitbox.maxZ && pos.z >= pHitbox.minZ &&
+            pos.x >= pHitbox.minX && pos.x <= pHitbox.maxX &&
+            pos.y >= pHitbox.minY && pos.y <= pHitbox.maxY) {
+          // Hit player!
+          this.scene.remove(bp.mesh);
+          this.bossProjectiles.splice(i, 1);
+          onPlayerHit();
+        } else if (pos.z < player.z - 10) {
+          this.scene.remove(bp.mesh);
+          this.bossProjectiles.splice(i, 1);
+        }
+      }
+    }
+
+    fireAttack(player) {
+      const geo = new THREE.DodecahedronGeometry(0.5, 0);
+      const mat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+      const mesh = new THREE.Mesh(geo, mat);
+      
+      // Aim at player's current lane
+      mesh.position.set(player.targetX, player.y + 0.9, this.group.position.z - 2);
+      this.scene.add(mesh);
+      this.bossProjectiles.push({ mesh, speed: 28 });
+      this.audio.playSound('laser');
+    }
+  }
+
+  /* -------------------------------------------------------------
+     PROCEDURAL TRACK, CHUNK & OBSTACLE GENERATOR
+     ------------------------------------------------------------- */
+  class LevelGenerator {
+    constructor(scene, particles, audio) {
+      this.scene = scene;
+      this.particles = particles;
+      this.audio = audio;
+      
+      this.activeChunks = [];
+      this.currentChunkIndex = 0;
+      this.currentBiomeIndex = 0;
+
+      // Obstacle & item pools
+      this.obstacles = [];
+      this.coins = [];
+      this.powerups = [];
+
+      // Shared geometries and materials for low-poly performance
+      this.initSharedResources();
+    }
+
+    initSharedResources() {
+      // Materials
+      this.materials = {
+        floor: new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.8, flatShading: true }),
+        ceiling: new THREE.MeshStandardMaterial({ color: 0x064e3b, roughness: 0.8, flatShading: true }),
+        barrier: new THREE.MeshStandardMaterial({ color: 0xf43f5e, roughness: 0.3, flatShading: true }),
+        spike: new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.2, flatShading: true }),
+        drone: new THREE.MeshStandardMaterial({ color: 0x8b5cf6, roughness: 0.3, flatShading: true }),
+        crate: new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.7, flatShading: true }),
+        coin: new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.6, roughness: 0.2, flatShading: true }),
+        sceneryTree: new THREE.MeshStandardMaterial({ color: 0x059669, roughness: 0.8, flatShading: true }),
+        sceneryTrunk: new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9, flatShading: true }),
+        sceneryRock: new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.9, flatShading: true })
+      };
+
+      // Geometries
+      this.geos = {
+        chunkPlatform: new THREE.BoxGeometry(CONFIG.LANE_WIDTH * 3 + 1.2, 0.5, CONFIG.CHUNK_LENGTH),
+        spike: new THREE.ConeGeometry(0.45, 1.1, 4),
+        lowBarrier: new THREE.BoxGeometry(2.4, 0.8, 0.5),
+        highBarrier: new THREE.BoxGeometry(2.4, 1.8, 0.5),
+        drone: new THREE.OctahedronGeometry(0.6, 0),
+        crate: new THREE.BoxGeometry(1.2, 1.2, 1.2),
+        coin: new THREE.CylinderGeometry(0.35, 0.35, 0.12, 8),
+        powerup: new THREE.OctahedronGeometry(0.5, 0),
+        treeCone: new THREE.ConeGeometry(1.2, 3.2, 5),
+        treeTrunk: new THREE.CylinderGeometry(0.3, 0.4, 1.4, 5),
+        rock: new THREE.DodecahedronGeometry(1.2, 0)
+      };
+
+      // Rotate coin geometry to stand upright
+      this.geos.coin.rotateX(Math.PI / 2);
+    }
+
+    setBiome(biomeIndex) {
+      this.currentBiomeIndex = biomeIndex % BIOMES.length;
+      const b = BIOMES[this.currentBiomeIndex];
+      this.materials.floor.color.setHex(b.groundColor);
+      this.materials.ceiling.color.setHex(b.ceilingColor);
+      this.materials.barrier.color.setHex(b.hazardColor);
+    }
+
+    createChunk(chunkZIndex) {
+      const chunkGroup = new THREE.Group();
+      const zPos = chunkZIndex * CONFIG.CHUNK_LENGTH;
+
+      // Floor Platform
+      const floor = new THREE.Mesh(this.geos.chunkPlatform, this.materials.floor);
+      floor.position.set(0, -0.25, zPos + CONFIG.CHUNK_LENGTH * 0.5);
+      chunkGroup.add(floor);
+
+      // Ceiling Platform (for Gravity Inversion mechanic!)
+      const ceiling = new THREE.Mesh(this.geos.chunkPlatform, this.materials.ceiling);
+      ceiling.position.set(0, 5.25, zPos + CONFIG.CHUNK_LENGTH * 0.5);
+      chunkGroup.add(ceiling);
+
+      // Track Lane Side Guard Rails
+      const railGeo = new THREE.BoxGeometry(0.2, 0.4, CONFIG.CHUNK_LENGTH);
+      const railL = new THREE.Mesh(railGeo, this.materials.barrier);
+      railL.position.set(-CONFIG.LANE_WIDTH * 1.5 - 0.5, 0.2, zPos + CONFIG.CHUNK_LENGTH * 0.5);
+      const railR = new THREE.Mesh(railGeo, this.materials.barrier);
+      railR.position.set(CONFIG.LANE_WIDTH * 1.5 + 0.5, 0.2, zPos + CONFIG.CHUNK_LENGTH * 0.5);
+      chunkGroup.add(railL);
+      chunkGroup.add(railR);
+
+      // Procedural Side Scenery (Trees, Rocks, Floating Pyramids)
+      for (let i = 0; i < 4; i++) {
+        const sideZ = zPos + (i + 0.5) * (CONFIG.CHUNK_LENGTH / 4);
+        
+        // Left scenery item
+        const sideL = new THREE.Group();
+        const trunkL = new THREE.Mesh(this.geos.treeTrunk, this.materials.sceneryTrunk);
+        trunkL.position.y = 0.7;
+        const foliageL = new THREE.Mesh(this.geos.treeCone, this.materials.sceneryTree);
+        foliageL.position.y = 2.4;
+        sideL.add(trunkL);
+        sideL.add(foliageL);
+        sideL.position.set(-CONFIG.LANE_WIDTH * 2.2 - Math.random() * 3, 0, sideZ);
+        chunkGroup.add(sideL);
+
+        // Right scenery rock
+        const rock = new THREE.Mesh(this.geos.rock, this.materials.sceneryRock);
+        const s = 0.7 + Math.random() * 0.8;
+        rock.scale.set(s, s, s);
+        rock.position.set(CONFIG.LANE_WIDTH * 2.2 + Math.random() * 3, 0.6 * s, sideZ);
+        rock.rotation.set(Math.random(), Math.random(), Math.random());
+        chunkGroup.add(rock);
+      }
+
+      // Populate Gameplay Obstacles & Pickups (Skip first 2 chunks at start)
+      if (chunkZIndex >= 2) {
+        this.populateChunkContent(chunkGroup, zPos);
+      }
+
+      this.scene.add(chunkGroup);
+      return { group: chunkGroup, zIndex: chunkZIndex };
+    }
+
+    populateChunkContent(chunkGroup, zStart) {
+      // Chunk layout patterns
+      const pattern = Math.floor(Math.random() * 5);
+      const laneXs = [-CONFIG.LANE_WIDTH, 0, CONFIG.LANE_WIDTH];
+
+      for (let segment = 1; segment <= 3; segment++) {
+        const z = zStart + segment * 12 + Math.random() * 3;
+        const freeLane = Math.floor(Math.random() * 3);
+
+        for (let lane = 0; lane < 3; lane++) {
+          const x = laneXs[lane];
+          
+          if (lane !== freeLane) {
+            // Spawn Obstacle
+            const obsType = Math.random();
+            if (obsType < 0.35) {
+              // Low Barrier (Must jump over)
+              const obs = new THREE.Mesh(this.geos.lowBarrier, this.materials.barrier);
+              obs.position.set(x, 0.4, z);
+              chunkGroup.add(obs);
+              this.obstacles.push({ mesh: obs, type: 'jump', hitbox: { minX: x - 1.1, maxX: x + 1.1, minY: 0, maxY: 0.8, minZ: z - 0.3, maxZ: z + 0.3 } });
+            } else if (obsType < 0.65) {
+              // High Hovering Barrier (Must slide under)
+              const obs = new THREE.Mesh(this.geos.highBarrier, this.materials.barrier);
+              obs.position.set(x, 2.2, z);
+              chunkGroup.add(obs);
+              this.obstacles.push({ mesh: obs, type: 'slide', hitbox: { minX: x - 1.1, maxX: x + 1.1, minY: 1.3, maxY: 3.1, minZ: z - 0.3, maxZ: z + 0.3 } });
+            } else if (obsType < 0.85) {
+              // Spike Cluster
+              const spikeGrp = new THREE.Group();
+              for (let s = -0.5; s <= 0.5; s += 0.5) {
+                const sp = new THREE.Mesh(this.geos.spike, this.materials.spike);
+                sp.position.set(s, 0.55, 0);
+                spikeGrp.add(sp);
+              }
+              spikeGrp.position.set(x, 0, z);
+              chunkGroup.add(spikeGrp);
+              this.obstacles.push({ mesh: spikeGrp, type: 'spike', hitbox: { minX: x - 0.9, maxX: x + 0.9, minY: 0, maxY: 1.1, minZ: z - 0.3, maxZ: z + 0.3 } });
+            } else {
+              // Flying Sine Drone (Dynamic)
+              const drone = new THREE.Mesh(this.geos.drone, this.materials.drone);
+              drone.position.set(x, 1.8, z);
+              chunkGroup.add(drone);
+              this.obstacles.push({ mesh: drone, type: 'drone', startY: 1.8, timeOffset: Math.random() * 5, hitbox: { minX: x - 0.6, maxX: x + 0.6, minY: 1.2, maxY: 2.4, minZ: z - 0.4, maxZ: z + 0.4 } });
+            }
+          } else {
+            // Spawn Coins or Powerups in the free/bonus lane
+            if (Math.random() < 0.15) {
+              // Powerup Pickup
+              const types = ['magnet', 'shield', 'multiplier', 'slowmo'];
+              const pType = types[Math.floor(Math.random() * types.length)];
+              const pMesh = new THREE.Mesh(this.geos.powerup, new THREE.MeshBasicMaterial({ color: pType === 'shield' ? 0x38bdf8 : pType === 'magnet' ? 0xf43f5e : pType === 'multiplier' ? 0xfacc15 : 0x22c55e }));
+              pMesh.position.set(x, 1.2, z);
+              chunkGroup.add(pMesh);
+              this.powerups.push({ mesh: pMesh, type: pType, active: true, z });
+            } else {
+              // Coin Arc
+              for (let c = 0; c < 3; c++) {
+                const coinMesh = new THREE.Mesh(this.geos.coin, this.materials.coin);
+                const coinZ = z - 1.5 + c * 1.5;
+                const coinY = 0.8 + Math.sin((c / 2) * Math.PI) * 0.8;
+                coinMesh.position.set(x, coinY, coinZ);
+                chunkGroup.add(coinMesh);
+                this.coins.push({ mesh: coinMesh, active: true, x, y: coinY, z: coinZ });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    initTrack() {
+      // Clear existing
+      for (const c of this.activeChunks) {
+        this.scene.remove(c.group);
+      }
+      this.activeChunks = [];
+      this.obstacles = [];
+      this.coins = [];
+      this.powerups = [];
+      this.currentChunkIndex = 0;
+
+      for (let i = 0; i < CONFIG.MAX_ACTIVE_CHUNKS; i++) {
+        const chunk = this.createChunk(i);
+        this.activeChunks.push(chunk);
+        this.currentChunkIndex++;
+      }
+    }
+
+    update(playerZ) {
+      // Recycle chunks behind player and spawn new ones ahead
+      if (this.activeChunks.length > 0) {
+        const firstChunk = this.activeChunks[0];
+        if (playerZ > (firstChunk.zIndex + 1) * CONFIG.CHUNK_LENGTH + 10) {
+          // Remove old chunk
+          this.scene.remove(firstChunk.group);
+          this.activeChunks.shift();
+
+          // Spawn new chunk ahead
+          const newChunk = this.createChunk(this.currentChunkIndex);
+          this.activeChunks.push(newChunk);
+          this.currentChunkIndex++;
+        }
+      }
+
+      // Animate coins & powerups
+      const time = performance.now() * 0.003;
+      for (let i = 0; i < this.coins.length; i++) {
+        const c = this.coins[i];
+        if (c.active) {
+          c.mesh.rotation.z = time * 2;
+        }
+      }
+      for (let i = 0; i < this.powerups.length; i++) {
+        const p = this.powerups[i];
+        if (p.active) {
+          p.mesh.rotation.y = time * 2.5;
+          p.mesh.rotation.x = time * 1.5;
+          p.mesh.position.y = 1.2 + Math.sin(time * 3) * 0.2;
+        }
+      }
+    }
+  }
+
+  /* -------------------------------------------------------------
+     MAIN GAME ENGINE & STATE MACHINE
+     ------------------------------------------------------------- */
+  class Game {
+    constructor() {
+      this.saveManager = new SaveManager();
+      this.audio = new AudioManager();
+      
+      this.initThree();
+      this.particles = new ParticlePool(this.scene);
+      this.player = new Player(this.scene, this.particles, this.audio);
+      this.levelGen = new LevelGenerator(this.scene, this.particles, this.audio);
+      this.boss = new MiniBoss(this.scene, this.particles, this.audio);
+
+      this.state = 'MENU'; // 'MENU', 'PLAYING', 'PAUSED', 'GAMEOVER'
+      this.runSpeed = CONFIG.INITIAL_SPEED;
+      this.distance = 0;
+      this.score = 0;
+      this.coinsGathered = 0;
+      this.nextBossDistance = CONFIG.BOSS_INTERVAL_METERS;
+      this.nextBiomeDistance = CONFIG.BIOME_INTERVAL_METERS;
+      this.currentBiomeIndex = 0;
+
+      this.initUI();
+      this.initInput();
+      this.applySavedSettings();
+      this.setupMenuScene();
+
+      // Start animation loop
+      this.lastFrameTime = performance.now();
+      requestAnimationFrame((t) => this.loop(t));
+    }
+
+    initThree() {
+      this.container = document.getElementById('canvas-container');
+      this.scene = new THREE.Scene();
+      this.scene.background = new THREE.Color(BIOMES[0].skyColor);
+      this.scene.fog = new THREE.FogExp2(BIOMES[0].fogColor, 0.015);
+
+      this.camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 300);
+      this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      this.renderer.setSize(window.innerWidth, window.innerHeight);
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      this.renderer.toneMappingExposure = 1.1;
+      this.container.appendChild(this.renderer.domElement);
+
+      // Lighting
+      this.ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+      this.scene.add(this.ambientLight);
+
+      this.dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      this.dirLight.position.set(15, 30, 20);
+      this.scene.add(this.dirLight);
+
+      window.addEventListener('resize', () => this.onWindowResize());
+    }
+
+    onWindowResize() {
+      this.camera.aspect = window.innerWidth / window.innerHeight;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    applySavedSettings() {
+      const s = this.saveManager.data.settings;
+      this.audio.sfxVolume = s.sfxVolume / 100;
+      this.audio.musicVolume = s.musicVolume / 100;
+      
+      const touchOverlay = document.getElementById('hud-touch-controls');
+      touchOverlay.style.display = s.showTouchControls ? 'flex' : 'none';
+
+      // Apply selected skin
+      const skin = SKINS.find(sk => sk.id === this.saveManager.data.selectedSkin) || SKINS[0];
+      this.player.model.applySkin(skin);
+      document.getElementById('menu-skin-name').textContent = skin.name;
+    }
+
+    setupMenuScene() {
+      this.player.reset();
+      this.player.model.group.position.set(0, 0, 0);
+      this.camera.position.set(0, 2.2, -4.2);
+      this.camera.lookAt(0, 1.2, 0);
+      this.updateMenuStats();
+    }
+
+    updateMenuStats() {
+      document.getElementById('menu-coins').textContent = this.saveManager.data.coins;
+      document.getElementById('menu-highscore').textContent = `${Math.floor(this.saveManager.data.bestDistance)} m`;
+      document.getElementById('shop-coins-counter').textContent = this.saveManager.data.coins;
+    }
+
+    startGame() {
+      this.state = 'PLAYING';
+      this.runSpeed = CONFIG.INITIAL_SPEED;
+      this.distance = 0;
+      this.score = 0;
+      this.coinsGathered = 0;
+      this.nextBossDistance = CONFIG.BOSS_INTERVAL_METERS;
+      this.nextBiomeDistance = CONFIG.BIOME_INTERVAL_METERS;
+      this.currentBiomeIndex = 0;
+
+      // Check upgrades
+      const hasStartShield = this.saveManager.data.upgrades.shield_start > 0;
+      this.player.reset(hasStartShield);
+      this.levelGen.initTrack();
+      this.levelGen.setBiome(0);
+
+      // UI Switch
+      document.getElementById('menu-screen').classList.add('hidden');
+      document.getElementById('gameover-screen').classList.add('hidden');
+      document.getElementById('pause-screen').classList.add('hidden');
+      document.getElementById('hud-screen').classList.remove('hidden');
+
+      this.audio.startMusic();
+      this.audio.playSound('powerup');
+    }
+
+    pauseGame() {
+      if (this.state !== 'PLAYING') return;
+      this.state = 'PAUSED';
+      document.getElementById('pause-screen').classList.remove('hidden');
+      this.audio.stopMusic();
+    }
+
+    resumeGame() {
+      if (this.state !== 'PAUSED') return;
+      this.state = 'PLAYING';
+      document.getElementById('pause-screen').classList.add('hidden');
+      this.audio.startMusic();
+    }
+
+    gameOver() {
+      if (this.state === 'GAMEOVER') return;
+      this.state = 'GAMEOVER';
+      this.player.isDead = true;
+      this.audio.stopMusic();
+      this.audio.playSound('crash');
+      this.particles.spawn(this.player.x, this.player.y + 0.8, this.player.z, 30, 0xef4444, 8);
+
+      // Save Data Progress
+      this.saveManager.data.runsCompleted++;
+      this.saveManager.data.totalCoins += this.coinsGathered;
+      this.saveManager.data.coins += this.coinsGathered;
+      if (this.distance > this.saveManager.data.bestDistance) {
+        this.saveManager.data.bestDistance = this.distance;
+      }
+      this.saveManager.save();
+      this.checkAchievements();
+
+      // Show Game Over Modal
+      setTimeout(() => {
+        document.getElementById('hud-screen').classList.add('hidden');
+        document.getElementById('gameover-screen').classList.remove('hidden');
+        document.getElementById('gameover-dist').textContent = `${Math.floor(this.distance)} m`;
+        document.getElementById('gameover-score').textContent = Math.floor(this.score);
+        document.getElementById('gameover-coins').textContent = `+${this.coinsGathered} $`;
+        document.getElementById('gameover-best').textContent = `${Math.floor(this.saveManager.data.bestDistance)} m`;
+        this.updateMenuStats();
+      }, 900);
+    }
+
+    onPlayerHitObstacle() {
+      if (this.player.invulnerableTimer > 0 || this.player.isNitroActive) {
+        // Invulnerable / Destroy obstacle with points
+        this.score += 150 * this.player.combo;
+        this.showAlertBanner('SMASHED!', 'Obstacle Destroyed');
+        this.audio.playSound('hit');
+        return;
+      }
+
+      if (this.player.hasShield) {
+        // Shield absorbs hit
+        this.player.hasShield = false;
+        this.player.invulnerableTimer = 1.0;
+        this.audio.playSound('hit');
+        this.particles.spawn(this.player.x, this.player.y + 0.9, this.player.z, 20, 0x38bdf8, 6);
+        this.showAlertBanner('SHIELD BROKEN!', 'Damage Absorbed');
+        return;
+      }
+
+      // Fatal Crash
+      this.gameOver();
+    }
+
+    collectCoin(coin) {
+      coin.active = false;
+      coin.mesh.visible = false;
+      const multiplierLevel = this.saveManager.data.upgrades.coin_multiplier || 0;
+      const val = 1 + multiplierLevel;
+      this.coinsGathered += val;
+      this.player.nitroEnergy = Math.min(100, this.player.nitroEnergy + 3.0);
+      this.score += 25 * this.player.combo;
+      this.audio.playSound('coin');
+      this.particles.spawn(coin.mesh.position.x, coin.mesh.position.y, coin.mesh.position.z, 6, 0xfbbf24, 3, 0.2, 0.35);
+      
+      // Update Combo streak
+      this.player.comboScoreStreak++;
+      if (this.player.comboScoreStreak >= 10 && this.player.combo < 10) {
+        this.player.combo++;
+        this.player.comboScoreStreak = 0;
+        if (this.player.combo > this.saveManager.data.maxComboReached) {
+          this.saveManager.data.maxComboReached = this.player.combo;
+        }
+        this.showAlertBanner(`COMBO x${this.player.combo}!`, 'Multiplier Boost');
+      }
+    }
+
+    collectPowerup(p) {
+      p.active = false;
+      p.mesh.visible = false;
+      this.audio.playSound('powerup');
+      this.particles.spawn(p.mesh.position.x, p.mesh.position.y, p.mesh.position.z, 15, 0x38bdf8, 5);
+
+      const magnetLevel = this.saveManager.data.upgrades.magnet_boost || 0;
+
+      switch(p.type) {
+        case 'shield':
+          this.player.hasShield = true;
+          this.showAlertBanner('ENERGY SHIELD', 'Protected against 1 hit');
+          break;
+        case 'magnet':
+          this.player.magnetTimer = 8.0 + magnetLevel * 2.5;
+          this.showAlertBanner('COIN MAGNET', 'Drawing nearby gold');
+          break;
+        case 'multiplier':
+          this.player.multiplierTimer = 12.0;
+          this.showAlertBanner('2x SCORE', 'Double score active');
+          break;
+        case 'slowmo':
+          this.player.slowmoTimer = 5.0;
+          this.showAlertBanner('CHRONO SLOW', 'Time slowed down');
+          break;
+      }
+    }
+
+    showAlertBanner(title, sub) {
+      const banner = document.getElementById('hud-alert-banner');
+      const titleEl = document.getElementById('hud-alert-title');
+      const subEl = document.getElementById('hud-alert-sub');
+      titleEl.textContent = title;
+      subEl.textContent = sub;
+      banner.classList.remove('opacity-0', 'scale-90');
+      banner.classList.add('opacity-100', 'scale-100');
+      
+      if (this.alertTimeout) clearTimeout(this.alertTimeout);
+      this.alertTimeout = setTimeout(() => {
+        banner.classList.remove('opacity-100', 'scale-100');
+        banner.classList.add('opacity-0', 'scale-90');
+      }, 1600);
+    }
+
+    checkAchievements() {
+      let anyUnlocked = false;
+      for (const ach of ACHIEVEMENTS) {
+        if (!this.saveManager.data.achievementsClaimed.includes(ach.id)) {
+          const currentVal = this.saveManager.data[ach.key] || 0;
+          if (currentVal >= ach.target) {
+            // Available to claim!
+            anyUnlocked = true;
+          }
+        }
+      }
+    }
+
+    /* -------------------------------------------------------------
+       PHYSICS & COLLISION DETECTION ENGINE
+       ------------------------------------------------------------- */
+    checkCollisions(dt) {
+      const pHitbox = this.player.getHitbox();
+      const magnetRadius = 4.5 + (this.saveManager.data.upgrades.magnet_boost || 0) * 1.5;
+
+      // 1. Obstacle collisions
+      for (let i = 0; i < this.levelGen.obstacles.length; i++) {
+        const obs = this.levelGen.obstacles[i];
+        
+        // Animate dynamic drones
+        if (obs.type === 'drone') {
+          obs.timeOffset += dt;
+          obs.mesh.position.y = obs.startY + Math.sin(obs.timeOffset * 4) * 0.7;
+          obs.hitbox.minY = obs.mesh.position.y - 0.5;
+          obs.hitbox.maxY = obs.mesh.position.y + 0.5;
+        }
+
+        const h = obs.hitbox;
+        // Check AABB Overlap
+        if (pHitbox.maxX >= h.minX && pHitbox.minX <= h.maxX &&
+            pHitbox.maxY >= h.minY && pHitbox.minY <= h.maxY &&
+            pHitbox.maxZ >= h.minZ && pHitbox.minZ <= h.maxZ) {
+          this.onPlayerHitObstacle();
+          break;
+        }
+      }
+
+      // 2. Coin Magnet & Pickups
+      for (let i = 0; i < this.levelGen.coins.length; i++) {
+        const c = this.levelGen.coins[i];
+        if (!c.active) continue;
+
+        const cPos = c.mesh.position;
+        const dx = cPos.x - this.player.x;
+        const dy = cPos.y - (this.player.y + 0.9);
+        const dz = cPos.z - this.player.z;
+        const distSq = dx * dx + dy * dy + dz * dz;
+
+        // Magnet suction
+        if (this.player.magnetTimer > 0 && distSq < magnetRadius * magnetRadius) {
+          cPos.x += (this.player.x - cPos.x) * 12 * dt;
+          cPos.y += (this.player.y + 0.9 - cPos.y) * 12 * dt;
+          cPos.z += (this.player.z - cPos.z) * 12 * dt;
+        }
+
+        // Direct Collection
+        if (distSq < 1.44) {
+          this.collectCoin(c);
+        }
+      }
+
+      // 3. Powerups
+      for (let i = 0; i < this.levelGen.powerups.length; i++) {
+        const p = this.levelGen.powerups[i];
+        if (!p.active) continue;
+
+        const pPos = p.mesh.position;
+        const dx = pPos.x - this.player.x;
+        const dy = pPos.y - (this.player.y + 0.9);
+        const dz = pPos.z - this.player.z;
+        if (dx * dx + dy * dy + dz * dz < 1.6) {
+          this.collectPowerup(p);
+        }
+      }
+    }
+
+    /* -------------------------------------------------------------
+       MAIN GAME LOOP
+       ------------------------------------------------------------- */
+    loop(timestamp) {
+      const dt = Math.min(0.1, (timestamp - this.lastFrameTime) * 0.001);
+      this.lastFrameTime = timestamp;
+
+      if (this.state === 'PLAYING') {
+        // Speed scaling with time
+        this.runSpeed = Math.min(CONFIG.MAX_SPEED, this.runSpeed + CONFIG.SPEED_ACCELERATION * dt);
+        
+        let effectiveSpeed = this.runSpeed;
+        if (this.player.isNitroActive) effectiveSpeed *= CONFIG.NITRO_SPEED_MULTIPLIER;
+        if (this.player.slowmoTimer > 0) effectiveSpeed *= 0.55;
+
+        // Audio Tempo Sync
+        this.audio.setMusicTempo(effectiveSpeed);
+
+        // Player Forward Movement
+        const deltaZ = effectiveSpeed * dt;
+        this.player.z += deltaZ;
+        this.distance += deltaZ;
+
+        // Score Multipliers
+        const scoreRate = 10 * (this.player.multiplierTimer > 0 ? 2 : 1) * this.player.combo;
+        this.score += scoreRate * dt;
+
+        // Update Subsystems
+        this.player.update(dt, effectiveSpeed);
+        this.levelGen.update(this.player.z);
+        this.particles.update(dt);
+        this.checkCollisions(dt);
+
+        // Biome Transitions
+        if (this.distance >= this.nextBiomeDistance) {
+          this.currentBiomeIndex = (this.currentBiomeIndex + 1) % BIOMES.length;
+          this.nextBiomeDistance += CONFIG.BIOME_INTERVAL_METERS;
+          this.levelGen.setBiome(this.currentBiomeIndex);
+          const biome = BIOMES[this.currentBiomeIndex];
+          this.scene.background.setHex(biome.skyColor);
+          this.scene.fog.color.setHex(biome.fogColor);
+          this.showAlertBanner(`ENTERING: ${biome.name.toUpperCase()}`, 'Biome Transition');
+        }
+
+        // Mini-Boss Spawning & Update
+        if (this.distance >= this.nextBossDistance && !this.boss.active) {
+          this.boss.spawn(this.player.z, this.currentBiomeIndex);
+          this.nextBossDistance += CONFIG.BOSS_INTERVAL_METERS;
+          this.showAlertBanner('WARNING: BOSS DETECTED!', this.boss.name);
+          this.audio.bossMusicMode = true;
+        }
+
+        if (this.boss.active) {
+          this.boss.update(dt, this.player, () => this.onPlayerHitObstacle());
+          if (!this.boss.active) {
+            // Boss Defeated Reward!
+            this.audio.bossMusicMode = false;
+            this.saveManager.data.bossesDefeated++;
+            this.coinsGathered += 100;
+            this.score += 2000 * this.player.combo;
+            this.player.hasShield = true;
+            this.player.nitroEnergy = 100;
+            this.showAlertBanner('BOSS DEFEATED!', '+100 Coins & Shield Boost');
+          }
+        }
+
+        // Camera Follow (Smooth dynamic follow with FOV speed flare)
+        const targetCamZ = this.player.z - 7.5;
+        const targetCamY = (this.player.gravityDirection === 1) ? 3.4 : 1.6;
+        this.camera.position.x += ((this.player.x * 0.4) - this.camera.position.x) * 8 * dt;
+        this.camera.position.y += (targetCamY - this.camera.position.y) * 6 * dt;
+        this.camera.position.z += (targetCamZ - this.camera.position.z) * 16 * dt;
+        
+        // Look ahead
+        this.camera.lookAt(this.player.x * 0.5, 2.0, this.player.z + 12);
+
+        // Dynamic FOV for Nitro sensation
+        const targetFov = this.player.isNitroActive ? 80 : 65;
+        this.camera.fov += (targetFov - this.camera.fov) * 5 * dt;
+        this.camera.updateProjectionMatrix();
+
+        // Update HUD
+        this.updateHUD();
+
+      } else if (this.state === 'MENU') {
+        // Idle turntable preview of runner in menu
+        const t = timestamp * 0.001;
+        this.player.model.group.rotation.y = t * 1.2;
+        this.player.model.animate({ isGrounded: true }, t, 0.4);
+      }
+
+      this.renderer.render(this.scene, this.camera);
+      requestAnimationFrame((t) => this.loop(t));
+    }
+
+    updateHUD() {
+      document.getElementById('hud-distance').innerHTML = `${Math.floor(this.distance)} <span class="text-lg text-cyan-400 font-normal">m</span>`;
+      document.getElementById('hud-coins').textContent = this.coinsGathered;
+      document.getElementById('hud-multiplier').textContent = `x${this.player.combo}`;
+
+      // Nitro Bar
+      const nitroFill = document.getElementById('hud-nitro-fill');
+      nitroFill.style.width = `${this.player.nitroEnergy}%`;
+      const nitroReady = document.getElementById('hud-nitro-ready');
+      if (this.player.isNitroActive) {
+        nitroReady.textContent = 'BOOSTING!';
+        nitroReady.className = 'text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 bg-amber-500/30 text-amber-300 rounded border border-amber-500/60 animate-pulse';
+      } else if (this.player.nitroEnergy >= 30) {
+        nitroReady.textContent = 'READY [F]';
+        nitroReady.className = 'text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/40';
+      } else {
+        nitroReady.textContent = 'CHARGING';
+        nitroReady.className = 'text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 bg-slate-700/40 text-slate-400 rounded border border-slate-700';
+      }
+
+      // Boss Bar
+      const bossContainer = document.getElementById('hud-boss-bar-container');
+      if (this.boss.active) {
+        bossContainer.classList.remove('hidden');
+        document.getElementById('hud-boss-name').textContent = `BOSS: ${this.boss.name}`;
+        const pct = Math.max(0, Math.floor((this.boss.hp / this.boss.maxHp) * 100));
+        document.getElementById('hud-boss-hp-text').textContent = `${pct}%`;
+        document.getElementById('hud-boss-hp-fill').style.width = `${pct}%`;
+      } else {
+        bossContainer.classList.add('hidden');
+      }
+
+      // Active Powerups container
+      const pList = document.getElementById('hud-powerups-list');
+      pList.innerHTML = '';
+      if (this.player.hasShield) {
+        pList.innerHTML += `<div class="px-2.5 py-1 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-xs font-bold font-gaming flex items-center space-x-1"><span>🛡️</span><span>SHIELD</span></div>`;
+      }
+      if (this.player.magnetTimer > 0) {
+        pList.innerHTML += `<div class="px-2.5 py-1 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-bold font-gaming flex items-center space-x-1"><span>🧲</span><span>${Math.ceil(this.player.magnetTimer)}s</span></div>`;
+      }
+      if (this.player.multiplierTimer > 0) {
+        pList.innerHTML += `<div class="px-2.5 py-1 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold font-gaming flex items-center space-x-1"><span>⭐ x2</span><span>${Math.ceil(this.player.multiplierTimer)}s</span></div>`;
+      }
+      if (this.player.slowmoTimer > 0) {
+        pList.innerHTML += `<div class="px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold font-gaming flex items-center space-x-1"><span>⏳ SLOW</span><span>${Math.ceil(this.player.slowmoTimer)}s</span></div>`;
+      }
+    }
+
+    /* -------------------------------------------------------------
+       INPUT & UI CONTROLS
+       ------------------------------------------------------------- */
+    initInput() {
+      // Keyboard
+      window.addEventListener('keydown', (e) => {
+        if (e.repeat) return;
+        if (this.state === 'PLAYING') {
+          if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+            this.player.setLane(this.player.currentLane - 1);
+          } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+            this.player.setLane(this.player.currentLane + 1);
+          } else if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+            this.player.jump(true);
+          } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+            this.player.slide();
+          } else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyG') {
+            this.player.flipGravity();
+            this.saveManager.data.totalGravityFlips++;
+          } else if (e.code === 'ControlLeft' || e.code === 'ControlRight' || e.code === 'KeyF') {
+            this.player.activateNitro();
+            this.saveManager.data.totalNitroUsed++;
+          } else if (e.code === 'Escape' || e.code === 'KeyP') {
+            this.pauseGame();
+          }
+        }
+      });
+
+      window.addEventListener('keyup', (e) => {
+        if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+          this.player.jump(false);
+        }
+      });
+
+      // Mobile Touch Gestures & Virtual Buttons
+      const touchJump = document.getElementById('touch-btn-jump');
+      const touchSlide = document.getElementById('touch-btn-slide');
+      const touchGravity = document.getElementById('touch-btn-gravity');
+      const touchNitro = document.getElementById('touch-btn-nitro');
+
+      touchJump.addEventListener('touchstart', (e) => { e.preventDefault(); this.player.jump(true); });
+      touchJump.addEventListener('touchend', (e) => { e.preventDefault(); this.player.jump(false); });
+      touchSlide.addEventListener('touchstart', (e) => { e.preventDefault(); this.player.slide(); });
+      touchGravity.addEventListener('touchstart', (e) => { 
+        e.preventDefault(); 
+        this.player.flipGravity();
+        this.saveManager.data.totalGravityFlips++;
+      });
+      touchNitro.addEventListener('touchstart', (e) => { 
+        e.preventDefault(); 
+        this.player.activateNitro();
+        this.saveManager.data.totalNitroUsed++;
+      });
+
+      // Swipe Detection on Canvas
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let touchStartTime = 0;
+
+      window.addEventListener('touchstart', (e) => {
+        if (this.state !== 'PLAYING') return;
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        touchStartTime = performance.now();
+      }, { passive: true });
+
+      window.addEventListener('touchend', (e) => {
+        if (this.state !== 'PLAYING') return;
+        const touch = e.changedTouches[0];
+        const dx = touch.clientX - touchStartX;
+        const dy = touch.clientY - touchStartY;
+        const dt = performance.now() - touchStartTime;
+
+        if (Math.abs(dx) > 35 && Math.abs(dx) > Math.abs(dy)) {
+          // Horizontal Swipe -> Change Lane
+          if (dx > 0) this.player.setLane(this.player.currentLane + 1);
+          else this.player.setLane(this.player.currentLane - 1);
+        } else if (Math.abs(dy) > 35) {
+          // Vertical Swipe
+          if (dy < 0) this.player.jump(true);
+          else this.player.slide();
+        }
+      }, { passive: true });
+    }
+
+    initUI() {
+      // Menu buttons
+      document.getElementById('btn-play-game').addEventListener('click', () => this.startGame());
+      document.getElementById('btn-pause-game').addEventListener('click', () => this.pauseGame());
+      document.getElementById('btn-resume-game').addEventListener('click', () => this.resumeGame());
+      document.getElementById('btn-restart-game').addEventListener('click', () => this.startGame());
+      document.getElementById('btn-pause-menu').addEventListener('click', () => {
+        document.getElementById('pause-screen').classList.add('hidden');
+        document.getElementById('hud-screen').classList.add('hidden');
+        document.getElementById('menu-screen').classList.remove('hidden');
+        this.state = 'MENU';
+        this.setupMenuScene();
+      });
+      document.getElementById('btn-gameover-menu').addEventListener('click', () => {
+        document.getElementById('gameover-screen').classList.add('hidden');
+        document.getElementById('menu-screen').classList.remove('hidden');
+        this.state = 'MENU';
+        this.setupMenuScene();
+      });
+      document.getElementById('btn-gameover-retry').addEventListener('click', () => this.startGame());
+
+      // Skin Selector in Menu
+      let currentSkinIndex = 0;
+      const updateSkinDisplay = () => {
+        const skin = SKINS[currentSkinIndex];
+        document.getElementById('menu-skin-name').textContent = skin.name;
+        this.player.model.applySkin(skin);
+        this.saveManager.data.selectedSkin = skin.id;
+        this.saveManager.save();
+      };
+
+      document.getElementById('btn-prev-skin').addEventListener('click', () => {
+        currentSkinIndex = (currentSkinIndex - 1 + SKINS.length) % SKINS.length;
+        updateSkinDisplay();
+      });
+      document.getElementById('btn-next-skin').addEventListener('click', () => {
+        currentSkinIndex = (currentSkinIndex + 1) % SKINS.length;
+        updateSkinDisplay();
+      });
+
+      // Modals Open / Close
+      const bindModal = (openBtnId, closeBtnId, modalId, onOpen) => {
+        document.getElementById(openBtnId).addEventListener('click', () => {
+          document.getElementById(modalId).classList.remove('hidden');
+          if (onOpen) onOpen();
+        });
+        document.getElementById(closeBtnId).addEventListener('click', () => {
+          document.getElementById(modalId).classList.add('hidden');
+          this.updateMenuStats();
+        });
+      };
+
+      bindModal('btn-open-shop', 'btn-close-shop', 'shop-modal', () => this.renderShop('upgrades'));
+      document.getElementById('btn-done-shop').addEventListener('click', () => {
+        document.getElementById('shop-modal').classList.add('hidden');
+        this.updateMenuStats();
+      });
+
+      bindModal('btn-open-achievements', 'btn-close-achievements', 'achievements-modal', () => this.renderAchievements());
+      document.getElementById('btn-done-achievements').addEventListener('click', () => document.getElementById('achievements-modal').classList.add('hidden'));
+
+      bindModal('btn-open-quests', 'btn-close-quests', 'quests-modal', () => this.renderQuests());
+      document.getElementById('btn-done-quests').addEventListener('click', () => document.getElementById('quests-modal').classList.add('hidden'));
+
+      bindModal('btn-open-settings', 'btn-close-settings', 'settings-modal');
+      document.getElementById('btn-done-settings').addEventListener('click', () => document.getElementById('settings-modal').classList.add('hidden'));
+
+      bindModal('btn-open-tutorial', 'btn-close-tutorial', 'tutorial-modal');
+      document.getElementById('btn-done-tutorial').addEventListener('click', () => document.getElementById('tutorial-modal').classList.add('hidden'));
+
+      // Shop Tab Switchers
+      document.getElementById('tab-btn-upgrades').addEventListener('click', (e) => {
+        this.switchShopTabs(e.target);
+        this.renderShop('upgrades');
+      });
+      document.getElementById('tab-btn-skins').addEventListener('click', (e) => {
+        this.switchShopTabs(e.target);
+        this.renderShop('skins');
+      });
+      document.getElementById('tab-btn-boosts').addEventListener('click', (e) => {
+        this.switchShopTabs(e.target);
+        this.renderShop('boosts');
+      });
+
+      // Settings sliders
+      const sfxSlider = document.getElementById('slider-sfx-vol');
+      const musicSlider = document.getElementById('slider-music-vol');
+      sfxSlider.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value);
+        document.getElementById('settings-sfx-val').textContent = `${val}%`;
+        this.audio.sfxVolume = val / 100;
+        this.saveManager.data.settings.sfxVolume = val;
+        this.saveManager.save();
+      });
+      musicSlider.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value);
+        document.getElementById('settings-music-val').textContent = `${val}%`;
+        this.audio.musicVolume = val / 100;
+        this.saveManager.data.settings.musicVolume = val;
+        this.saveManager.save();
+      });
+
+      // Toggle touch controls
+      document.getElementById('toggle-touch-controls').addEventListener('change', (e) => {
+        const val = e.target.checked;
+        document.getElementById('hud-touch-controls').style.display = val ? 'flex' : 'none';
+        this.saveManager.data.settings.showTouchControls = val;
+        this.saveManager.save();
+      });
+
+      // Reset data button
+      document.getElementById('btn-reset-save').addEventListener('click', () => {
+        if (confirm('Are you sure you want to reset all game progress and high scores?')) {
+          this.saveManager.reset();
+          this.applySavedSettings();
+          this.updateMenuStats();
+          alert('Save data reset successfully!');
+        }
+      });
+    }
+
+    switchShopTabs(activeTabEl) {
+      const tabs = ['tab-btn-upgrades', 'tab-btn-skins', 'tab-btn-boosts'];
+      tabs.forEach(id => {
+        const el = document.getElementById(id);
+        el.className = 'px-4 py-1.5 rounded-xl font-gaming text-lg font-bold text-slate-400 hover:text-slate-200';
+      });
+      activeTabEl.className = 'px-4 py-1.5 rounded-xl font-gaming text-lg font-bold text-cyan-300 bg-cyan-500/20 border border-cyan-500/40';
+    }
+
+    renderShop(tab) {
+      const container = document.getElementById('shop-items-container');
+      container.innerHTML = '';
+      const coins = this.saveManager.data.coins;
+
+      if (tab === 'upgrades') {
+        for (const up of UPGRADES) {
+          const currentLevel = this.saveManager.data.upgrades[up.id] || 0;
+          const isMax = currentLevel >= up.maxLevel;
+          const cost = isMax ? 0 : up.costs[currentLevel];
+          const canAfford = coins >= cost;
+
+          const itemEl = document.createElement('div');
+          itemEl.className = 'p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 flex justify-between items-center';
+          itemEl.innerHTML = `
+            <div class="flex items-center space-x-3">
+              <span class="text-3xl">${up.icon}</span>
+              <div>
+                <div class="font-bold text-white font-gaming text-lg">${up.name} <span class="text-cyan-400 text-sm">Lv.${currentLevel}/${up.maxLevel}</span></div>
+                <div class="text-xs text-slate-400">${up.desc}</div>
+              </div>
+            </div>
+            <div>
+              ${isMax 
+                ? `<span class="px-3 py-1.5 rounded-xl bg-slate-800 text-emerald-400 font-bold text-xs">MAXED</span>`
+                : `<button class="btn-buy-upgrade px-4 py-2 rounded-xl font-gaming text-base font-bold transition ${canAfford ? 'bg-amber-500 text-slate-950 hover:bg-amber-400' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}" data-id="${up.id}" ${canAfford ? '' : 'disabled'}>
+                    ${cost} $
+                   </button>`
+              }
+            </div>
+          `;
+          container.appendChild(itemEl);
+        }
+
+        // Bind Buy buttons
+        container.querySelectorAll('.btn-buy-upgrade').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const upId = e.currentTarget.getAttribute('data-id');
+            const up = UPGRADES.find(u => u.id === upId);
+            const currentLevel = this.saveManager.data.upgrades[upId] || 0;
+            const cost = up.costs[currentLevel];
+            if (this.saveManager.data.coins >= cost) {
+              this.saveManager.data.coins -= cost;
+              this.saveManager.data.upgrades[upId] = currentLevel + 1;
+              this.saveManager.save();
+              this.audio.playSound('powerup');
+              this.updateMenuStats();
+              this.renderShop('upgrades');
+            }
+          });
+        });
+
+      } else if (tab === 'skins') {
+        for (const skin of SKINS) {
+          const isUnlocked = this.saveManager.data.unlockedSkins.includes(skin.id);
+          const isSelected = this.saveManager.data.selectedSkin === skin.id;
+          const canAfford = coins >= skin.price;
+
+          const itemEl = document.createElement('div');
+          itemEl.className = 'p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 flex justify-between items-center';
+          itemEl.innerHTML = `
+            <div>
+              <div class="font-bold text-white font-gaming text-lg">${skin.name}</div>
+              <div class="text-xs text-slate-400">${isUnlocked ? 'Unlocked' : `Requires ${skin.price} $`}</div>
+            </div>
+            <div>
+              ${isSelected
+                ? `<span class="px-3 py-1.5 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold text-xs">EQUIPPED</span>`
+                : isUnlocked
+                ? `<button class="btn-equip-skin px-4 py-1.5 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 font-gaming text-sm font-bold" data-id="${skin.id}">EQUIP</button>`
+                : `<button class="btn-buy-skin px-4 py-2 rounded-xl font-gaming text-base font-bold transition ${canAfford ? 'bg-amber-500 text-slate-950 hover:bg-amber-400' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}" data-id="${skin.id}" ${canAfford ? '' : 'disabled'}>
+                    BUY ${skin.price} $
+                   </button>`
+              }
+            </div>
+          `;
+          container.appendChild(itemEl);
+        }
+
+        container.querySelectorAll('.btn-buy-skin').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const skinId = e.currentTarget.getAttribute('data-id');
+            const skin = SKINS.find(s => s.id === skinId);
+            if (this.saveManager.data.coins >= skin.price) {
+              this.saveManager.data.coins -= skin.price;
+              this.saveManager.data.unlockedSkins.push(skinId);
+              this.saveManager.data.selectedSkin = skinId;
+              this.saveManager.save();
+              this.player.model.applySkin(skin);
+              this.audio.playSound('powerup');
+              this.updateMenuStats();
+              this.renderShop('skins');
+            }
+          });
+        });
+
+        container.querySelectorAll('.btn-equip-skin').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const skinId = e.currentTarget.getAttribute('data-id');
+            const skin = SKINS.find(s => s.id === skinId);
+            this.saveManager.data.selectedSkin = skinId;
+            this.saveManager.save();
+            this.player.model.applySkin(skin);
+            this.renderShop('skins');
+          });
+        });
+      } else if (tab === 'boosts') {
+        const boostsList = [
+          { id: 'head_start', name: 'Rocket Head Start', desc: 'Launch 250m ahead on next run', cost: 100, icon: '🚀' },
+          { id: 'score_booster', name: 'Score Multiplier x2', desc: 'Permanent 2x score multiplier for next run', cost: 150, icon: '⭐' }
+        ];
+
+        for (const b of boostsList) {
+          const hasBoost = this.saveManager.data.boosts[b.id];
+          const canAfford = coins >= b.cost;
+
+          const itemEl = document.createElement('div');
+          itemEl.className = 'p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 flex justify-between items-center';
+          itemEl.innerHTML = `
+            <div class="flex items-center space-x-3">
+              <span class="text-3xl">${b.icon}</span>
+              <div>
+                <div class="font-bold text-white font-gaming text-lg">${b.name}</div>
+                <div class="text-xs text-slate-400">${b.desc}</div>
+              </div>
+            </div>
+            <div>
+              ${hasBoost
+                ? `<span class="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold text-xs">READY FOR NEXT RUN</span>`
+                : `<button class="btn-buy-boost px-4 py-2 rounded-xl font-gaming text-base font-bold transition ${canAfford ? 'bg-amber-500 text-slate-950 hover:bg-amber-400' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}" data-id="${b.id}" ${canAfford ? '' : 'disabled'}>
+                    ${b.cost} $
+                   </button>`
+              }
+            </div>
+          `;
+          container.appendChild(itemEl);
+        }
+
+        container.querySelectorAll('.btn-buy-boost').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const bId = e.currentTarget.getAttribute('data-id');
+            const boost = boostsList.find(b => b.id === bId);
+            if (this.saveManager.data.coins >= boost.cost) {
+              this.saveManager.data.coins -= boost.cost;
+              this.saveManager.data.boosts[bId] = true;
+              this.saveManager.save();
+              this.audio.playSound('powerup');
+              this.updateMenuStats();
+              this.renderShop('boosts');
+            }
+          });
+        });
+      }
+    }
+
+    renderAchievements() {
+      const container = document.getElementById('achievements-list');
+      container.innerHTML = '';
+
+      for (const ach of ACHIEVEMENTS) {
+        const isClaimed = this.saveManager.data.achievementsClaimed.includes(ach.id);
+        const currentVal = this.saveManager.data[ach.key] || 0;
+        const progress = Math.min(100, Math.floor((currentVal / ach.target) * 100));
+        const canClaim = !isClaimed && currentVal >= ach.target;
+
+        const itemEl = document.createElement('div');
+        itemEl.className = 'p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 flex justify-between items-center';
+        itemEl.innerHTML = `
+          <div class="flex-1 pr-4">
+            <div class="flex items-center space-x-2">
+              <span class="font-bold text-white font-gaming text-lg">${ach.name}</span>
+              <span class="text-xs text-amber-400 font-bold">+${ach.reward} $</span>
+            </div>
+            <div class="text-xs text-slate-400 mb-1.5">${ach.desc}</div>
+            <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div class="h-full bg-cyan-400 rounded-full" style="width: ${progress}%;"></div>
+            </div>
+          </div>
+          <div>
+            ${isClaimed
+              ? `<span class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-500 font-bold text-xs">CLAIMED</span>`
+              : canClaim
+              ? `<button class="btn-claim-ach px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-gaming text-base font-black hover:bg-cyan-400 animate-pulse" data-id="${ach.id}" data-reward="${ach.reward}">CLAIM</button>`
+              : `<span class="text-xs text-slate-500 font-bold">${currentVal}/${ach.target}</span>`
+            }
+          </div>
+        `;
+        container.appendChild(itemEl);
+      }
+
+      container.querySelectorAll('.btn-claim-ach').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const achId = e.currentTarget.getAttribute('data-id');
+          const reward = parseInt(e.currentTarget.getAttribute('data-reward'));
+          this.saveManager.data.achievementsClaimed.push(achId);
+          this.saveManager.data.coins += reward;
+          this.saveManager.save();
+          this.audio.playSound('coin');
+          this.updateMenuStats();
+          this.renderAchievements();
+        });
+      });
+    }
+
+    renderQuests() {
+      const container = document.getElementById('quests-list');
+      container.innerHTML = '';
+
+      const quests = [
+        { id: 0, title: "Run 600 Meters", target: 600, cur: Math.floor(this.saveManager.data.bestDistance), reward: 120 },
+        { id: 1, title: "Collect 80 Gold Coins", target: 80, cur: this.saveManager.data.totalCoins, reward: 150 },
+        { id: 2, title: "Perform 15 Gravity Flips", target: 15, cur: this.saveManager.data.totalGravityFlips, reward: 100 }
+      ];
+
+      for (const q of quests) {
+        const isClaimed = this.saveManager.data.questClaimed[q.id];
+        const progress = Math.min(100, Math.floor((q.cur / q.target) * 100));
+        const canClaim = !isClaimed && q.cur >= q.target;
+
+        const itemEl = document.createElement('div');
+        itemEl.className = 'p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 flex justify-between items-center';
+        itemEl.innerHTML = `
+          <div class="flex-1 pr-4">
+            <div class="flex items-center space-x-2">
+              <span class="font-bold text-white font-gaming text-lg">${q.title}</span>
+              <span class="text-xs text-emerald-400 font-bold">+${q.reward} $</span>
+            </div>
+            <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mt-2">
+              <div class="h-full bg-emerald-400 rounded-full" style="width: ${progress}%;"></div>
+            </div>
+          </div>
+          <div>
+            ${isClaimed
+              ? `<span class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-500 font-bold text-xs">CLAIMED</span>`
+              : canClaim
+              ? `<button class="btn-claim-quest px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-gaming text-base font-black hover:bg-emerald-400 animate-pulse" data-id="${q.id}" data-reward="${q.reward}">CLAIM</button>`
+              : `<span class="text-xs text-slate-500 font-bold">${q.cur}/${q.target}</span>`
+            }
+          </div>
+        `;
+        container.appendChild(itemEl);
+      }
+
+      container.querySelectorAll('.btn-claim-quest').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const qId = parseInt(e.currentTarget.getAttribute('data-id'));
+          const reward = parseInt(e.currentTarget.getAttribute('data-reward'));
+          this.saveManager.data.questClaimed[qId] = true;
+          this.saveManager.data.coins += reward;
+          this.saveManager.save();
+          this.audio.playSound('coin');
+          this.updateMenuStats();
+          this.renderQuests();
+        });
+      });
+    }
+  }
+
+  // Initialize Game on Window Load
+  window.addEventListener('DOMContentLoaded', () => {
+    window.game = new Game();
+  });
+  </script>
+</body>
+</html>

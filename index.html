@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>LowPoly Rush: Infinite 3D Runner</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Rajdhani:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles/main.css">
+</head>
+<body class="text-white select-none overflow-hidden bg-slate-950">
+
+  <!-- 3D WebGL Canvas Container -->
+  <div id="canvas-container" class="absolute inset-0 z-0 w-full h-full"></div>
+
+  <!-- UI ROOT WRAPPER -->
+  <div id="ui-root" class="relative z-10 w-full h-full pointer-events-none flex flex-col justify-between p-4 sm:p-6">
+    
+    <!-- ==================== MAIN MENU SCREEN ==================== -->
+    <div id="menu-screen" class="pointer-events-auto absolute inset-0 z-30 flex flex-col justify-between p-6 sm:p-8 bg-gradient-to-t from-slate-950/90 via-slate-900/40 to-transparent transition-opacity duration-300">
+      <!-- Top Bar: Logo & Stats summary -->
+      <div class="flex justify-between items-start w-full">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-widest bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">Low-Poly 3D</span>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-widest bg-amber-500/20 text-amber-400 border border-amber-500/30">Roguelite</span>
+          </div>
+          <h1 class="font-gaming text-4xl sm:text-6xl md:text-7xl font-black italic tracking-tighter uppercase mt-1 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-200 to-amber-400 drop-shadow-md">
+            LOWPOLY RUSH
+          </h1>
+          <p class="text-slate-300 text-sm sm:text-base font-medium max-w-md mt-1 drop-shadow">
+            Infinite gravity-flipping 3D runner. Dodge obstacles, defeat mini-bosses, upgrade your runner!
+          </p>
+        </div>
+
+        <!-- Coins and Highscore widget -->
+        <div class="flex flex-col items-end space-y-2">
+          <div class="glass-panel px-4 py-2 rounded-2xl flex items-center space-x-2 border-amber-500/30 neon-box-amber">
+            <svg class="w-6 h-6 text-amber-400 animate-pulse-slow" fill="currentColor" viewBox="0 0 20 20">
+              <circle cx="10" cy="10" r="8" fill="#F59E0B"/>
+              <circle cx="10" cy="10" r="5" fill="#D97706"/>
+              <text x="10" y="13.5" font-size="9" font-weight="bold" text-anchor="middle" fill="#FEF3C7">$</text>
+            </svg>
+            <span id="menu-coins" class="font-gaming text-2xl font-bold text-amber-300">0</span>
+          </div>
+          <div class="glass-panel px-3 py-1.5 rounded-xl text-xs text-slate-300 flex items-center space-x-1">
+            <span>BEST:</span>
+            <span id="menu-highscore" class="font-bold text-cyan-400 font-gaming text-base">0 m</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center / Character Showcase Controls (Rotate / Skin switch buttons in menu) -->
+      <div class="flex justify-between items-center w-full max-w-xl mx-auto my-auto">
+        <button id="btn-prev-skin" class="p-3 glass-panel rounded-full hover:border-cyan-400 text-cyan-300 transition active:scale-90" aria-label="Previous Runner Skin">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="text-center px-4 py-2 glass-panel rounded-2xl border-cyan-500/20">
+          <div class="text-xs uppercase tracking-widest text-slate-400">Selected Runner</div>
+          <div id="menu-skin-name" class="font-gaming text-2xl font-bold text-cyan-300">CYBER RUNNER</div>
+        </div>
+        <button id="btn-next-skin" class="p-3 glass-panel rounded-full hover:border-cyan-400 text-cyan-300 transition active:scale-90" aria-label="Next Runner Skin">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+
+      <!-- Bottom Action Hub -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
+        <!-- Secondary Navigation buttons -->
+        <div class="flex flex-wrap gap-2.5 justify-center sm:justify-start order-2 sm:order-1">
+          <button id="btn-open-shop" class="glass-panel px-5 py-3 rounded-2xl hover:bg-slate-800/80 hover:border-amber-400 transition-all font-gaming text-lg font-bold flex items-center space-x-2 text-amber-300 active:scale-95">
+            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+            <span>SHOP</span>
+          </button>
+          <button id="btn-open-achievements" class="glass-panel px-5 py-3 rounded-2xl hover:bg-slate-800/80 hover:border-cyan-400 transition-all font-gaming text-lg font-bold flex items-center space-x-2 text-cyan-300 active:scale-95">
+            <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+            <span>ACHIEVEMENTS</span>
+          </button>
+          <button id="btn-open-quests" class="glass-panel px-5 py-3 rounded-2xl hover:bg-slate-800/80 hover:border-emerald-400 transition-all font-gaming text-lg font-bold flex items-center space-x-2 text-emerald-300 active:scale-95">
+            <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            <span>DAILY QUESTS</span>
+          </button>
+          <button id="btn-open-settings" class="glass-panel px-4 py-3 rounded-2xl hover:bg-slate-800/80 hover:border-slate-400 transition-all text-slate-300 active:scale-95" aria-label="Settings">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </button>
+          <button id="btn-open-tutorial" class="glass-panel px-4 py-3 rounded-2xl hover:bg-slate-800/80 hover:border-slate-400 transition-all text-slate-300 active:scale-95" aria-label="Tutorial">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </button>
+        </div>
+
+        <!-- Big Play Button -->
+        <button id="btn-play-game" class="w-full sm:w-auto order-1 sm:order-2 px-10 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-500 text-slate-950 font-gaming text-3xl font-black tracking-wider shadow-lg shadow-cyan-500/40 hover:shadow-cyan-400/60 hover:scale-105 active:scale-95 transition-all duration-200 uppercase flex items-center justify-center space-x-3 cursor-pointer">
+          <span>RUN NOW</span>
+          <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== IN-GAME HUD ==================== -->
+    <div id="hud-screen" class="hidden pointer-events-none absolute inset-0 z-20 flex flex-col justify-between p-4 sm:p-6">
+      
+      <!-- Top Row: Distance, Score, Multiplier, Coins, Boss Bar -->
+      <div class="flex flex-col w-full space-y-2">
+        <div class="flex justify-between items-start w-full">
+          <!-- Left: Distance & Multiplier -->
+          <div class="flex items-center space-x-3">
+            <div class="glass-panel px-4 py-2 rounded-2xl border-cyan-500/30 neon-box-cyan flex flex-col">
+              <span class="text-[10px] uppercase font-bold tracking-widest text-cyan-400">Distance</span>
+              <span id="hud-distance" class="font-gaming text-3xl sm:text-4xl font-black text-cyan-100 leading-none">0 <span class="text-lg text-cyan-400 font-normal">m</span></span>
+            </div>
+            
+            <div id="hud-combo-container" class="glass-panel px-3.5 py-2 rounded-2xl border-amber-500/40 neon-box-amber flex flex-col items-center transform transition-transform">
+              <span class="text-[10px] uppercase font-bold tracking-widest text-amber-400">Combo</span>
+              <span id="hud-multiplier" class="font-gaming text-2xl sm:text-3xl font-black text-amber-300 leading-none">x1</span>
+            </div>
+          </div>
+
+          <!-- Center: Boss Health -->
+          <div id="hud-boss-bar-container" class="hidden flex-1 max-w-sm mx-4 flex flex-col items-center">
+            <div class="flex justify-between w-full text-xs font-bold tracking-wider uppercase mb-1">
+              <span id="hud-boss-name" class="text-rose-400 font-gaming text-base animate-pulse">BOSS: SKY SENTINEL</span>
+              <span id="hud-boss-hp-text" class="text-rose-300">100%</span>
+            </div>
+            <div class="w-full h-3.5 bg-slate-900/90 rounded-full overflow-hidden border border-rose-500/50 p-0.5 animate-boss-glow">
+              <div id="hud-boss-hp-fill" class="h-full bg-gradient-to-r from-amber-500 via-rose-500 to-red-600 rounded-full transition-all duration-100" style="width: 100%;"></div>
+            </div>
+          </div>
+
+          <!-- Right: Coins & Pause button -->
+          <div class="flex items-center space-x-3 pointer-events-auto">
+            <div class="glass-panel px-3.5 py-2 rounded-2xl border-amber-500/30 flex items-center space-x-2">
+              <svg class="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                <circle cx="10" cy="10" r="8" fill="#F59E0B"/>
+                <circle cx="10" cy="10" r="5" fill="#D97706"/>
+                <text x="10" y="13.5" font-size="9" font-weight="bold" text-anchor="middle" fill="#FEF3C7">$</text>
+              </svg>
+              <span id="hud-coins" class="font-gaming text-2xl font-bold text-amber-300">0</span>
+            </div>
+
+            <button id="btn-pause-game" class="p-2.5 glass-panel rounded-2xl hover:border-slate-300 text-slate-300 hover:text-white transition active:scale-95 cursor-pointer" aria-label="Pause Game">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Active Power-ups Bar -->
+        <div id="hud-powerups-list" class="flex items-center space-x-2">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Dynamic Floating HUD Alert Toast (Compact & Non-intrusive) -->
+      <div id="hud-alert-banner" class="opacity-0 scale-90 transition-all duration-300 absolute left-1/2 -translate-x-1/2 z-30 pointer-events-none text-center px-4 py-1.5 rounded-2xl bg-slate-950/70 backdrop-blur-md border border-cyan-500/30 shadow-lg shadow-cyan-500/10 flex flex-col items-center max-w-xs sm:max-w-sm">
+        <h2 id="hud-alert-title" class="font-gaming text-base sm:text-lg font-black italic tracking-wide text-amber-400 leading-tight">PERFECT DODGE!</h2>
+        <p id="hud-alert-sub" class="text-[10px] sm:text-xs font-semibold uppercase tracking-widest text-slate-300 leading-tight">Score Multiplier Increased</p>
+      </div>
+
+      <!-- Bottom Row: Nitro Boost Meter + Mobile Virtual Controls -->
+      <div class="flex flex-col w-full space-y-3">
+        <!-- Nitro Bar -->
+        <div class="flex items-center space-x-2 max-w-md mx-auto w-full">
+          <span class="text-xs font-gaming font-black text-cyan-400 tracking-wider">NITRO</span>
+          <div class="flex-1 h-3 bg-slate-950/80 rounded-full overflow-hidden border border-cyan-500/40 p-0.5">
+            <div id="hud-nitro-fill" class="h-full bg-gradient-to-r from-teal-400 via-cyan-400 to-blue-500 rounded-full transition-all duration-150" style="width: 50%;"></div>
+          </div>
+          <span id="hud-nitro-ready" class="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/40">READY [F]</span>
+        </div>
+
+        <!-- Touch Controls -->
+        <div id="hud-touch-controls" class="pointer-events-auto flex justify-between items-end w-full pt-2">
+          <!-- Left: Slide + Nitro -->
+          <div class="flex items-center space-x-3">
+            <button id="touch-btn-slide" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl glass-panel border-amber-500/50 flex flex-col items-center justify-center font-gaming text-amber-300 font-bold active:bg-amber-500/30 transition shadow-lg cursor-pointer">
+              <svg class="w-7 h-7 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+              <span class="text-xs">SLIDE</span>
+            </button>
+            <button id="touch-btn-nitro" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl glass-panel border-cyan-500/50 flex flex-col items-center justify-center font-gaming text-cyan-300 font-bold active:bg-cyan-500/30 transition shadow-lg cursor-pointer">
+              <svg class="w-7 h-7 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              <span class="text-xs">BOOST</span>
+            </button>
+          </div>
+
+          <!-- Right: Jump + Gravity Flip -->
+          <div class="flex items-center space-x-3">
+            <button id="touch-btn-gravity" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl glass-panel border-purple-500/50 flex flex-col items-center justify-center font-gaming text-purple-300 font-bold active:bg-purple-500/30 transition shadow-lg cursor-pointer">
+              <svg class="w-7 h-7 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
+              <span class="text-xs">GRAVITY</span>
+            </button>
+            <button id="touch-btn-jump" class="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-cyan-500/20 border-2 border-cyan-400 flex flex-col items-center justify-center font-gaming text-cyan-200 font-black active:bg-cyan-400/40 transition shadow-cyan-500/30 shadow-xl cursor-pointer">
+              <svg class="w-8 h-8 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+              <span class="text-sm">JUMP</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== GAME OVER SCREEN ==================== -->
+    <div id="gameover-screen" class="hidden pointer-events-auto absolute inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+      <div class="glass-panel w-full max-w-md p-6 sm:p-8 rounded-3xl border-rose-500/30 shadow-2xl flex flex-col items-center text-center animate-pulse-slow">
+        <span class="px-3 py-1 bg-rose-500/20 text-rose-400 border border-rose-500/40 text-xs font-bold uppercase tracking-widest rounded-full">RUN FINISHED</span>
+        <h2 class="font-gaming text-5xl font-black italic text-rose-400 mt-2 mb-4">CRASHED!</h2>
+
+        <!-- Stats Card -->
+        <div class="w-full bg-slate-900/60 rounded-2xl p-4 border border-slate-800 space-y-3 mb-6">
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-slate-400 font-medium">Distance Traveled</span>
+            <span id="gameover-dist" class="font-gaming text-2xl font-bold text-cyan-300">0 m</span>
+          </div>
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-slate-400 font-medium">Final Score</span>
+            <span id="gameover-score" class="font-gaming text-2xl font-bold text-amber-300">0</span>
+          </div>
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-slate-400 font-medium">Coins Collected</span>
+            <span id="gameover-coins" class="font-gaming text-2xl font-bold text-amber-400">+0 $</span>
+          </div>
+          <div class="flex justify-between items-center text-sm pt-2 border-t border-slate-800">
+            <span class="text-slate-400 font-medium">Best Record</span>
+            <span id="gameover-best" class="font-gaming text-lg font-bold text-slate-200">0 m</span>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-3 w-full">
+          <button id="btn-gameover-menu" class="w-full py-3.5 rounded-2xl glass-panel hover:bg-slate-800 text-slate-300 font-gaming text-xl font-bold transition active:scale-95 cursor-pointer">
+            MAIN MENU
+          </button>
+          <button id="btn-gameover-retry" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-teal-400 text-slate-950 font-gaming text-2xl font-black tracking-wider shadow-lg shadow-cyan-500/40 hover:scale-105 active:scale-95 transition cursor-pointer">
+            RETRY
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PAUSE MODAL ==================== -->
+    <div id="pause-screen" class="hidden pointer-events-auto absolute inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+      <div class="glass-panel w-full max-w-sm p-6 rounded-3xl border-slate-700 shadow-2xl flex flex-col items-center text-center">
+        <h2 class="font-gaming text-4xl font-black italic text-cyan-300 mb-6">GAME PAUSED</h2>
+        <div class="flex flex-col gap-3 w-full">
+          <button id="btn-resume-game" class="py-3.5 rounded-2xl bg-cyan-500 text-slate-950 font-gaming text-2xl font-black hover:bg-cyan-400 transition active:scale-95 cursor-pointer">
+            RESUME
+          </button>
+          <button id="btn-restart-game" class="py-3.5 rounded-2xl glass-panel hover:bg-slate-800 text-amber-300 font-gaming text-xl font-bold transition active:scale-95 cursor-pointer">
+            RESTART
+          </button>
+          <button id="btn-pause-menu" class="py-3.5 rounded-2xl glass-panel hover:bg-slate-800 text-slate-300 font-gaming text-xl font-bold transition active:scale-95 cursor-pointer">
+            QUIT TO MENU
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SHOP MODAL ==================== -->
+    <div id="shop-modal" class="hidden pointer-events-auto absolute inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+      <div class="glass-panel w-full max-w-2xl max-h-[90vh] p-6 rounded-3xl border-amber-500/30 flex flex-col justify-between shadow-2xl">
+        <!-- Header -->
+        <div class="flex justify-between items-center pb-4 border-b border-slate-800">
+          <div class="flex items-center space-x-3">
+            <h2 class="font-gaming text-3xl font-black text-amber-400">UPGRADES & SKINS</h2>
+            <div class="px-3 py-1 bg-amber-500/20 text-amber-300 font-gaming text-xl font-bold rounded-xl border border-amber-500/30 flex items-center space-x-1">
+              <span>$</span>
+              <span id="shop-coins-counter">0</span>
+            </div>
+          </div>
+          <button id="btn-close-shop" class="p-2 text-slate-400 hover:text-white rounded-xl glass-panel cursor-pointer" aria-label="Close Shop">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- Shop Tabs -->
+        <div class="flex space-x-2 mt-4 mb-3 border-b border-slate-800/80 pb-2">
+          <button id="tab-btn-upgrades" class="px-4 py-1.5 rounded-xl font-gaming text-lg font-bold text-cyan-300 bg-cyan-500/20 border border-cyan-500/40 cursor-pointer">UPGRADES</button>
+          <button id="tab-btn-skins" class="px-4 py-1.5 rounded-xl font-gaming text-lg font-bold text-slate-400 hover:text-slate-200 cursor-pointer">SKINS</button>
+          <button id="tab-btn-boosts" class="px-4 py-1.5 rounded-xl font-gaming text-lg font-bold text-slate-400 hover:text-slate-200 cursor-pointer">BOOSTS</button>
+        </div>
+
+        <!-- Content Container (Scrollable) -->
+        <div id="shop-items-container" class="flex-1 overflow-y-auto pr-1 space-y-3 max-h-[50vh]">
+          <!-- Dynamic Items -->
+        </div>
+
+        <!-- Footer -->
+        <div class="pt-4 border-t border-slate-800 flex justify-end">
+          <button id="btn-done-shop" class="px-6 py-2.5 rounded-xl bg-amber-500 text-slate-950 font-gaming text-xl font-black hover:bg-amber-400 transition cursor-pointer">
+            DONE
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== ACHIEVEMENTS MODAL ==================== -->
+    <div id="achievements-modal" class="hidden pointer-events-auto absolute inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+      <div class="glass-panel w-full max-w-xl max-h-[90vh] p-6 rounded-3xl border-cyan-500/30 flex flex-col justify-between shadow-2xl">
+        <div class="flex justify-between items-center pb-4 border-b border-slate-800">
+          <h2 class="font-gaming text-3xl font-black text-cyan-300">ACHIEVEMENTS</h2>
+          <button id="btn-close-achievements" class="p-2 text-slate-400 hover:text-white rounded-xl glass-panel cursor-pointer" aria-label="Close Achievements">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        
+        <div id="achievements-list" class="flex-1 overflow-y-auto pr-1 space-y-3 my-4 max-h-[55vh]">
+          <!-- Dynamic Achievements -->
+        </div>
+
+        <div class="pt-4 border-t border-slate-800 flex justify-end">
+          <button id="btn-done-achievements" class="px-6 py-2.5 rounded-xl bg-cyan-500 text-slate-950 font-gaming text-xl font-black hover:bg-cyan-400 transition cursor-pointer">
+            CLOSE
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== DAILY QUESTS MODAL ==================== -->
+    <div id="quests-modal" class="hidden pointer-events-auto absolute inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+      <div class="glass-panel w-full max-w-lg max-h-[90vh] p-6 rounded-3xl border-emerald-500/30 flex flex-col justify-between shadow-2xl">
+        <div class="flex justify-between items-center pb-4 border-b border-slate-800">
+          <div>
+            <h2 class="font-gaming text-3xl font-black text-emerald-400">DAILY MISSIONS</h2>
+            <p class="text-xs text-slate-400">Complete tasks to earn bonus gold!</p>
+          </div>
+          <button id="btn-close-quests" class="p-2 text-slate-400 hover:text-white rounded-xl glass-panel cursor-pointer" aria-label="Close Daily Quests">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        
+        <div id="quests-list" class="flex-1 overflow-y-auto pr-1 space-y-3 my-4 max-h-[50vh]">
+          <!-- Dynamic Quests -->
+        </div>
+
+        <div class="pt-4 border-t border-slate-800 flex justify-end">
+          <button id="btn-done-quests" class="px-6 py-2.5 rounded-xl bg-emerald-500 text-slate-950 font-gaming text-xl font-black hover:bg-emerald-400 transition cursor-pointer">
+            CLOSE
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SETTINGS MODAL ==================== -->
+    <div id="settings-modal" class="hidden pointer-events-auto absolute inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+      <div class="glass-panel w-full max-w-md p-6 rounded-3xl border-slate-700 shadow-2xl flex flex-col space-y-4">
+        <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+          <h2 class="font-gaming text-3xl font-black text-slate-200">SETTINGS</h2>
+          <button id="btn-close-settings" class="p-2 text-slate-400 hover:text-white rounded-xl glass-panel cursor-pointer" aria-label="Close Settings">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="space-y-4 text-sm">
+          <!-- Audio Volumes -->
+          <div>
+            <div class="flex justify-between text-xs font-bold text-slate-400 uppercase mb-1">
+              <span>Master Sound FX</span>
+              <span id="settings-sfx-val">80%</span>
+            </div>
+            <input id="slider-sfx-vol" type="range" min="0" max="100" value="80" class="w-full accent-cyan-400 cursor-pointer">
+          </div>
+
+          <div>
+            <div class="flex justify-between text-xs font-bold text-slate-400 uppercase mb-1">
+              <span>Synthwave Music</span>
+              <span id="settings-music-val">70%</span>
+            </div>
+            <input id="slider-music-vol" type="range" min="0" max="100" value="70" class="w-full accent-cyan-400 cursor-pointer">
+          </div>
+
+          <!-- Graphics Quality -->
+          <div>
+            <div class="text-xs font-bold text-slate-400 uppercase mb-1">Graphics Detail</div>
+            <div class="grid grid-cols-3 gap-2">
+              <button id="gfx-low" class="py-2 rounded-xl glass-panel text-xs font-bold hover:border-cyan-400 cursor-pointer">LOW (30 FPS)</button>
+              <button id="gfx-med" class="py-2 rounded-xl glass-panel text-xs font-bold hover:border-cyan-400 cursor-pointer">MED</button>
+              <button id="gfx-high" class="py-2 rounded-xl glass-panel text-xs font-bold border-cyan-400 text-cyan-300 cursor-pointer">HIGH (60 FPS)</button>
+            </div>
+          </div>
+
+          <!-- Touch Controls Visibility -->
+          <div class="flex justify-between items-center pt-2">
+            <div>
+              <div class="font-bold text-slate-200">On-Screen Buttons</div>
+              <div class="text-xs text-slate-400">Show virtual pads on mobile & touch</div>
+            </div>
+            <input id="toggle-touch-controls" type="checkbox" checked class="w-5 h-5 accent-cyan-400 cursor-pointer">
+          </div>
+
+          <!-- Reset Save Data -->
+          <div class="pt-2 border-t border-slate-800 flex justify-between items-center">
+            <span class="text-xs text-rose-400">Erase progress & reset</span>
+            <button id="btn-reset-save" class="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/40 rounded-xl text-rose-300 text-xs font-bold cursor-pointer">
+              RESET DATA
+            </button>
+          </div>
+        </div>
+
+        <button id="btn-done-settings" class="w-full py-3 rounded-xl bg-cyan-500 text-slate-950 font-gaming text-xl font-black hover:bg-cyan-400 transition mt-2 cursor-pointer">
+          SAVE & CLOSE
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== TUTORIAL / HOW TO PLAY MODAL ==================== -->
+    <div id="tutorial-modal" class="hidden pointer-events-auto absolute inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+      <div class="glass-panel w-full max-w-lg p-6 rounded-3xl border-cyan-500/40 shadow-2xl flex flex-col space-y-4">
+        <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+          <h2 class="font-gaming text-3xl font-black text-cyan-300">HOW TO PLAY</h2>
+          <button id="btn-close-tutorial" class="p-2 text-slate-400 hover:text-white rounded-xl glass-panel cursor-pointer" aria-label="Close Tutorial">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="space-y-3 text-sm text-slate-300 overflow-y-auto max-h-[60vh] pr-1">
+          <div class="flex items-start space-x-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+            <div class="px-2.5 py-1 bg-cyan-500/20 text-cyan-300 font-bold rounded-lg border border-cyan-500/40 text-xs shrink-0">A / D / ← →</div>
+            <div>
+              <div class="font-bold text-white">Lane Switching</div>
+              <div class="text-xs text-slate-400">Shift between Left, Center, and Right lanes (or swipe left/right on touch).</div>
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+            <div class="px-2.5 py-1 bg-cyan-500/20 text-cyan-300 font-bold rounded-lg border border-cyan-500/40 text-xs shrink-0">SPACE / ↑ / W</div>
+            <div>
+              <div class="font-bold text-white">Variable Jump & Double Jump</div>
+              <div class="text-xs text-slate-400">Hold longer for higher jumps. Press again while airborne to double jump over tall hazards.</div>
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+            <div class="px-2.5 py-1 bg-amber-500/20 text-amber-300 font-bold rounded-lg border border-amber-500/40 text-xs shrink-0">S / ↓</div>
+            <div>
+              <div class="font-bold text-white">Slide Under Barriers</div>
+              <div class="text-xs text-slate-400">Lowers hitbox to slip under high lasers and overhead platforms. Also acts as a fast aerial drop.</div>
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+            <div class="px-2.5 py-1 bg-purple-500/20 text-purple-300 font-bold rounded-lg border border-purple-500/40 text-xs shrink-0">SHIFT / G</div>
+            <div>
+              <div class="font-bold text-white">Gravity Inversion Flip</div>
+              <div class="text-xs text-slate-400">Flip between the floor and ceiling track! Essential when the entire floor is impassable.</div>
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+            <div class="px-2.5 py-1 bg-teal-500/20 text-teal-300 font-bold rounded-lg border border-teal-500/40 text-xs shrink-0">CTRL / F</div>
+            <div>
+              <div class="font-bold text-white">Nitro Super Boost</div>
+              <div class="text-xs text-slate-400">Charge energy by collecting gold coins. Grants blazing speed and invulnerability to obstacles!</div>
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+            <div class="px-2.5 py-1 bg-rose-500/20 text-rose-300 font-bold rounded-lg border border-rose-500/40 text-xs shrink-0">BOSS FIGHT</div>
+            <div>
+              <div class="font-bold text-white">Mini-Boss Encounters</div>
+              <div class="text-xs text-slate-400">Every 400m, a floating sentinel attacks! Auto-blasters engage while you dodge its plasma spheres.</div>
+            </div>
+          </div>
+        </div>
+
+        <button id="btn-done-tutorial" class="w-full py-3 rounded-xl bg-cyan-500 text-slate-950 font-gaming text-xl font-black hover:bg-cyan-400 transition cursor-pointer">
+          GOT IT, LET'S PLAY!
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Entry Script Module -->
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

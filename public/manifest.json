@@ -1,0 +1,9 @@
+{
+  "name": "LowPoly Rush",
+  "short_name": "LowPolyRush",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0e17",
+  "theme_color": "#06b6d4",
+  "icons": []
+}
