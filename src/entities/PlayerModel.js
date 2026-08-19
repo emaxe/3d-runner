@@ -18,7 +18,9 @@ export class PlayerModel {
       glowCore: new THREE.MeshBasicMaterial({ color: 0x06b6d4 }),
       limbs: new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5, metalness: 0.2, flatShading: true }),
       accent: new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.2, metalness: 0.4, flatShading: true }),
-      flame: new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85 })
+      flame: new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85 }),
+      neon: new THREE.MeshBasicMaterial({ color: 0x38bdf8 }),
+      gauntlet: new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3, metalness: 0.6, flatShading: true })
     };
 
     this.buildModel();
@@ -48,6 +50,16 @@ export class PlayerModel {
     this.coreMesh.position.set(0, 0.12, 0.23);
     this.torso.add(this.coreMesh);
 
+    // Reactor glow halo (additive sprite-like ring)
+    const haloGeo = new THREE.TorusGeometry(0.2, 0.02, 4, 12);
+    this.coreHalo = new THREE.Mesh(haloGeo, new THREE.MeshBasicMaterial({
+      color: 0x06b6d4,
+      transparent: true,
+      opacity: 0.6
+    }));
+    this.coreHalo.position.set(0, 0.12, 0.24);
+    this.torso.add(this.coreHalo);
+
     // Cyber Belt & Buckle
     const beltGeo = new THREE.BoxGeometry(0.66, 0.12, 0.42);
     const belt = new THREE.Mesh(beltGeo, this.materials.bodyDark);
@@ -58,6 +70,15 @@ export class PlayerModel {
     const buckle = new THREE.Mesh(buckleGeo, this.materials.accent);
     buckle.position.set(0, -0.32, 0);
     this.torso.add(buckle);
+
+    // Neon side strips on torso
+    const sideStripGeo = new THREE.BoxGeometry(0.05, 0.5, 0.4);
+    const sideStripL = new THREE.Mesh(sideStripGeo, this.materials.neon);
+    sideStripL.position.set(-0.34, 0, 0);
+    this.torso.add(sideStripL);
+    const sideStripR = new THREE.Mesh(sideStripGeo, this.materials.neon);
+    sideStripR.position.set(0.34, 0, 0);
+    this.torso.add(sideStripR);
 
     // 2. Head & Helmet
     const headGeo = new THREE.BoxGeometry(0.42, 0.42, 0.44);
@@ -86,6 +107,12 @@ export class PlayerModel {
     chin.position.set(0, -0.16, 0.2);
     this.head.add(chin);
 
+    // Helmet top neon crest
+    const crestGeo = new THREE.BoxGeometry(0.1, 0.08, 0.3);
+    const crest = new THREE.Mesh(crestGeo, this.materials.neon);
+    crest.position.set(0, 0.24, 0.02);
+    this.head.add(crest);
+
     // 3. Jetpack Unit with Active Thruster Flames
     const jetGeo = new THREE.BoxGeometry(0.48, 0.52, 0.22);
     this.jetpack = new THREE.Mesh(jetGeo, this.materials.accent);
@@ -110,6 +137,23 @@ export class PlayerModel {
     this.flameR = new THREE.Mesh(flameGeo, this.materials.flame);
     this.flameR.position.set(0, -0.22, 0);
     tR.add(this.flameR);
+
+    // Jetpack energy rings
+    const jetRingGeo = new THREE.TorusGeometry(0.3, 0.02, 4, 12);
+    this.jetRing1 = new THREE.Mesh(jetRingGeo, new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.5
+    }));
+    this.jetRing1.position.set(0, 0.1, -0.1);
+    this.jetpack.add(this.jetRing1);
+    this.jetRing2 = new THREE.Mesh(jetRingGeo, new THREE.MeshBasicMaterial({
+      color: 0x06b6d4,
+      transparent: true,
+      opacity: 0.4
+    }));
+    this.jetRing2.position.set(0, -0.1, -0.1);
+    this.jetpack.add(this.jetRing2);
 
     // 4. Arms (Shoulder Pauldrons + Upper Arm + Forearm with Gauntlets)
     const pauldronGeo = new THREE.BoxGeometry(0.22, 0.16, 0.24);
@@ -137,6 +181,15 @@ export class PlayerModel {
     const leftForearm = new THREE.Mesh(forearmGeo, this.materials.bodyDark);
     this.leftForearmPivot.add(leftForearm);
 
+    // Left Glowing Gauntlet (fist)
+    const gauntletGeo = new THREE.BoxGeometry(0.2, 0.16, 0.2);
+    const leftGauntlet = new THREE.Mesh(gauntletGeo, this.materials.gauntlet);
+    leftGauntlet.position.set(0, -0.34, 0);
+    this.leftForearmPivot.add(leftGauntlet);
+    const leftGauntletNeon = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.05, 0.22), this.materials.neon);
+    leftGauntletNeon.position.set(0, -0.34, 0);
+    this.leftForearmPivot.add(leftGauntletNeon);
+
     // Right Arm
     this.rightArmPivot = new THREE.Group();
     this.rightArmPivot.position.set(0.42, 0.3, 0);
@@ -155,6 +208,14 @@ export class PlayerModel {
 
     const rightForearm = new THREE.Mesh(forearmGeo, this.materials.bodyDark);
     this.rightForearmPivot.add(rightForearm);
+
+    // Right Glowing Gauntlet (fist)
+    const rightGauntlet = new THREE.Mesh(gauntletGeo, this.materials.gauntlet);
+    rightGauntlet.position.set(0, -0.34, 0);
+    this.rightForearmPivot.add(rightGauntlet);
+    const rightGauntletNeon = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.05, 0.22), this.materials.neon);
+    rightGauntletNeon.position.set(0, -0.34, 0);
+    this.rightForearmPivot.add(rightGauntletNeon);
 
     // 5. Legs (Hip + Thigh + Knee + Calf & Armored Boots)
     const thighGeo = new THREE.BoxGeometry(0.2, 0.38, 0.2);
@@ -178,6 +239,15 @@ export class PlayerModel {
     const leftCalf = new THREE.Mesh(calfGeo, this.materials.bodyDark);
     this.leftKneePivot.add(leftCalf);
 
+    // Left Armored Boot with glowing sole
+    const bootGeo = new THREE.BoxGeometry(0.24, 0.18, 0.34);
+    const leftBoot = new THREE.Mesh(bootGeo, this.materials.gauntlet);
+    leftBoot.position.set(0, -0.36, 0.04);
+    this.leftKneePivot.add(leftBoot);
+    const leftBootNeon = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.05, 0.36), this.materials.neon);
+    leftBootNeon.position.set(0, -0.44, 0.04);
+    this.leftKneePivot.add(leftBootNeon);
+
     // Right Leg
     this.rightLegPivot = new THREE.Group();
     this.rightLegPivot.position.set(0.2, -0.36, 0);
@@ -192,6 +262,14 @@ export class PlayerModel {
 
     const rightCalf = new THREE.Mesh(calfGeo, this.materials.bodyDark);
     this.rightKneePivot.add(rightCalf);
+
+    // Right Armored Boot with glowing sole
+    const rightBoot = new THREE.Mesh(bootGeo, this.materials.gauntlet);
+    rightBoot.position.set(0, -0.36, 0.04);
+    this.rightKneePivot.add(rightBoot);
+    const rightBootNeon = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.05, 0.36), this.materials.neon);
+    rightBootNeon.position.set(0, -0.44, 0.04);
+    this.rightKneePivot.add(rightBootNeon);
 
     // 6. Holographic Dual-Ring Energy Shield
     this.shieldGroup = new THREE.Group();
@@ -231,6 +309,7 @@ export class PlayerModel {
     this.materials.flame.color.setHex(colors.visor);
     this.materials.limbs.color.setHex(colors.limbs);
     this.materials.accent.color.setHex(colors.accent);
+    this.materials.neon.color.setHex(colors.visor);
   }
 
   animate(state, time, speedFactor = 1.0) {
@@ -245,6 +324,17 @@ export class PlayerModel {
     if (this.coreMesh) {
       this.coreMesh.rotation.y = time * 3;
       this.coreMesh.rotation.z = time * 2;
+    }
+    // Core halo pulse
+    if (this.coreHalo) {
+      const haloScale = 1 + Math.sin(time * 5) * 0.15;
+      this.coreHalo.scale.set(haloScale, haloScale, haloScale);
+      this.coreHalo.rotation.z = time * 2;
+    }
+    // Jetpack energy rings rotation
+    if (this.jetRing1) {
+      this.jetRing1.rotation.x = time * 2;
+      this.jetRing2.rotation.x = -time * 2;
     }
 
     // Shield rotation

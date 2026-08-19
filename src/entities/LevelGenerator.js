@@ -19,6 +19,7 @@ export class LevelGenerator {
     this.obstacles = [];
     this.coins = [];
     this.powerups = [];
+    this.ambientOrbs = [];
 
     this.initSharedResources();
   }
@@ -44,7 +45,16 @@ export class LevelGenerator {
       sceneryPrimary: new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.6, metalness: 0.2, flatShading: true }),
       scenerySecondary: new THREE.MeshStandardMaterial({ color: 0x06b6d4, roughness: 0.5, flatShading: true }),
       sceneryRock: new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.8, flatShading: true }),
-      sceneryGlow: new THREE.MeshBasicMaterial({ color: 0x34d399 })
+      sceneryGlow: new THREE.MeshBasicMaterial({ color: 0x34d399 }),
+      neonSignMat: new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4, metalness: 0.5, flatShading: true }),
+      neonSignGlowMat: new THREE.MeshBasicMaterial({ color: 0x38bdf8 }),
+      cableMat: new THREE.MeshBasicMaterial({ color: 0x334155 }),
+      glowPillarMat: new THREE.MeshBasicMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.7 }),
+      glowPillarBaseMat: new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5, flatShading: true }),
+      floatingOrbMat: new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.8 }),
+      ventMat: new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6, metalness: 0.4, flatShading: true }),
+      ventGlowMat: new THREE.MeshBasicMaterial({ color: 0x38bdf8 }),
+      floorLightMat: new THREE.MeshBasicMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.7 })
     };
 
     this.geos = {
@@ -74,7 +84,17 @@ export class LevelGenerator {
       treeCrystal: new THREE.DodecahedronGeometry(0.9, 0),
       sceneryPyramid: new THREE.ConeGeometry(1.6, 3.6, 4),
       sceneryRock: new THREE.DodecahedronGeometry(1.2, 0),
-      sceneryPillar: new THREE.BoxGeometry(0.8, 4.2, 0.8)
+      sceneryPillar: new THREE.BoxGeometry(0.8, 4.2, 0.8),
+      neonSign: new THREE.BoxGeometry(1.6, 0.5, 0.1),
+      neonSignGlow: new THREE.BoxGeometry(1.4, 0.3, 0.05),
+      cable: new THREE.CylinderGeometry(0.03, 0.03, 1, 4),
+      glowPillar: new THREE.CylinderGeometry(0.15, 0.15, 2.5, 6),
+      glowPillarBase: new THREE.CylinderGeometry(0.3, 0.4, 0.2, 6),
+      floatingOrb: new THREE.IcosahedronGeometry(0.25, 0),
+      ventGrille: new THREE.BoxGeometry(0.5, 0.5, 0.1),
+      ventSlat: new THREE.BoxGeometry(0.4, 0.06, 0.12),
+      energyCable: new THREE.CylinderGeometry(0.05, 0.05, 1, 4),
+      floorLight: new THREE.BoxGeometry(0.3, 0.06, 0.3)
     };
 
     this.geos.coinCore.rotateX(Math.PI / 2);
@@ -98,26 +118,38 @@ export class LevelGenerator {
       this.materials.scenerySecondary.color.setHex(0x06b6d4);
       this.materials.sceneryGlow.color.setHex(0x34d399);
       this.materials.sceneryRock.color.setHex(0x334155);
+      this.materials.neonSignGlowMat.color.setHex(0x06b6d4);
+      this.materials.glowPillarMat.color.setHex(0x06b6d4);
+      this.materials.floatingOrbMat.color.setHex(0x38bdf8);
     } else if (b.id === 'solar_dunes') {
       this.materials.sceneryPrimary.color.setHex(0xd97706);
       this.materials.scenerySecondary.color.setHex(0xf59e0b);
       this.materials.sceneryGlow.color.setHex(0xfef08a);
       this.materials.sceneryRock.color.setHex(0x78350f);
+      this.materials.neonSignGlowMat.color.setHex(0xfbbf24);
+      this.materials.glowPillarMat.color.setHex(0xfbbf24);
+      this.materials.floatingOrbMat.color.setHex(0xfef08a);
     } else if (b.id === 'glacial_peaks') {
       this.materials.sceneryPrimary.color.setHex(0x38bdf8);
       this.materials.scenerySecondary.color.setHex(0xa5f3fc);
       this.materials.sceneryGlow.color.setHex(0xe0f2fe);
       this.materials.sceneryRock.color.setHex(0x1e293b);
+      this.materials.neonSignGlowMat.color.setHex(0xa5f3fc);
+      this.materials.glowPillarMat.color.setHex(0x38bdf8);
+      this.materials.floatingOrbMat.color.setHex(0xe0f2fe);
     } else {
       // Cyber Volcano
       this.materials.sceneryPrimary.color.setHex(0x7f1d1d);
       this.materials.scenerySecondary.color.setHex(0xf43f5e);
       this.materials.sceneryGlow.color.setHex(0xfacc15);
       this.materials.sceneryRock.color.setHex(0x18000a);
+      this.materials.neonSignGlowMat.color.setHex(0xf43f5e);
+      this.materials.glowPillarMat.color.setHex(0xfacc15);
+      this.materials.floatingOrbMat.color.setHex(0xf43f5e);
     }
   }
 
-  createChunk(chunkZIndex) {
+  createChunk(chunkZIndex, level = 1) {
     const chunkGroup = new THREE.Group();
     const zPos = chunkZIndex * CONFIG.CHUNK_LENGTH;
     const chunkCenterZ = zPos + CONFIG.CHUNK_LENGTH * 0.5;
@@ -198,7 +230,7 @@ export class LevelGenerator {
 
     // 6. Populate Gameplay Obstacles & Pickups
     if (chunkZIndex >= 2) {
-      this.populateChunkContent(chunkGroup, zPos);
+      this.populateChunkContent(chunkGroup, zPos, level);
     }
 
     this.scene.add(chunkGroup);
@@ -234,6 +266,17 @@ export class LevelGenerator {
         rock.position.set(railX + 1.5 + Math.random() * 2.5, 0.6 * s, sideZ);
         chunkGroup.add(rock);
 
+        // Extra: small glowing bushes near the track
+        const bushGeo = new THREE.IcosahedronGeometry(0.4, 0);
+        const bushMat = new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.6, flatShading: true });
+        for (let b = 0; b < 3; b++) {
+          const bush = new THREE.Mesh(bushGeo, bushMat);
+          const bushSide = b % 2 === 0 ? -1 : 1;
+          bush.position.set(bushSide * (railX + 0.5 + Math.random() * 1.5), 0.3, sideZ + (b - 1) * 1.2);
+          bush.scale.setScalar(0.6 + Math.random() * 0.5);
+          chunkGroup.add(bush);
+        }
+
       } else if (currentBiome.id === 'solar_dunes') {
         // Left: Floating antigravity solar pyramid
         const pyramid = new THREE.Mesh(this.geos.sceneryPyramid, this.materials.sceneryPrimary);
@@ -245,6 +288,17 @@ export class LevelGenerator {
         const pillar = new THREE.Mesh(this.geos.sceneryPillar, this.materials.scenerySecondary);
         pillar.position.set(railX + 2.0 + Math.random() * 2, 2.1, sideZ);
         chunkGroup.add(pillar);
+
+        // Extra: small sand dunes (flattened rocks)
+        const duneGeo = new THREE.ConeGeometry(1.2, 0.6, 4);
+        const duneMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9, flatShading: true });
+        for (let d = 0; d < 2; d++) {
+          const dune = new THREE.Mesh(duneGeo, duneMat);
+          const duneSide = d % 2 === 0 ? -1 : 1;
+          dune.position.set(duneSide * (railX + 1.0 + Math.random() * 2), 0.3, sideZ + (d - 0.5) * 2);
+          dune.rotation.y = Math.random() * Math.PI;
+          chunkGroup.add(dune);
+        }
 
       } else if (currentBiome.id === 'glacial_peaks') {
         // Left & Right: Ice crystal monoliths
@@ -259,6 +313,17 @@ export class LevelGenerator {
         iceR.position.set(railX + 2.0 + Math.random() * 2, s * 0.8, sideZ);
         chunkGroup.add(iceR);
 
+        // Extra: small ice spikes on the ground
+        const spikeGeo = new THREE.ConeGeometry(0.3, 1.0, 4);
+        const spikeMat = new THREE.MeshStandardMaterial({ color: 0xa5f3fc, roughness: 0.3, flatShading: true });
+        for (let sp = 0; sp < 3; sp++) {
+          const spike = new THREE.Mesh(spikeGeo, spikeMat);
+          const spikeSide = sp % 2 === 0 ? -1 : 1;
+          spike.position.set(spikeSide * (railX + 0.8 + Math.random() * 1.5), 0.5, sideZ + (sp - 1) * 1.5);
+          spike.rotation.y = Math.random() * Math.PI;
+          chunkGroup.add(spike);
+        }
+
       } else {
         // Cyber Volcano: Obsidian basalt towers & magma vents
         const basalt = new THREE.Mesh(this.geos.sceneryPillar, this.materials.sceneryRock);
@@ -268,13 +333,127 @@ export class LevelGenerator {
         const lavaRock = new THREE.Mesh(this.geos.sceneryRock, this.materials.scenerySecondary);
         lavaRock.position.set(railX + 2.0 + Math.random() * 2, 0.8, sideZ);
         chunkGroup.add(lavaRock);
+
+        // Extra: glowing magma pools
+        const poolGeo = new THREE.CircleGeometry(0.8, 6);
+        const poolMat = new THREE.MeshBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.6 });
+        for (let p = 0; p < 2; p++) {
+          const pool = new THREE.Mesh(poolGeo, poolMat);
+          const poolSide = p % 2 === 0 ? -1 : 1;
+          pool.rotation.x = -Math.PI / 2;
+          pool.position.set(poolSide * (railX + 0.8 + Math.random() * 1.5), 0.05, sideZ + (p - 0.5) * 2);
+          chunkGroup.add(pool);
+        }
       }
+    }
+
+    // Extra ambient decor: neon signs, glow pillars, floating orbs, cables
+    this.populateAmbientDecor(chunkGroup, zPos);
+  }
+
+  /**
+   * Ambient decorative props: neon signs, glowing pillars, floating orbs, cables.
+   */
+  populateAmbientDecor(chunkGroup, zPos) {
+    const railX = CONFIG.LANE_WIDTH * 1.5 + 1.2;
+
+    // Neon signs on the side walls
+    for (let i = 0; i < 2; i++) {
+      const signZ = zPos + 5 + i * (CONFIG.CHUNK_LENGTH / 2);
+      const signGroup = new THREE.Group();
+      const sign = new THREE.Mesh(this.geos.neonSign, this.materials.neonSignMat);
+      const glow = new THREE.Mesh(this.geos.neonSignGlow, this.materials.neonSignGlowMat);
+      signGroup.add(sign);
+      signGroup.add(glow);
+      signGroup.position.set(railX + 0.3, 2.8, signZ);
+      signGroup.rotation.y = -Math.PI / 2;
+      chunkGroup.add(signGroup);
+    }
+
+    // Ventilation grilles on the side walls (with glowing slats)
+    for (let i = 0; i < 3; i++) {
+      const ventZ = zPos + 2 + i * (CONFIG.CHUNK_LENGTH / 3);
+      const side = i % 2 === 0 ? -1 : 1;
+      const ventGroup = new THREE.Group();
+      const grille = new THREE.Mesh(this.geos.ventGrille, this.materials.ventMat);
+      const slat1 = new THREE.Mesh(this.geos.ventSlat, this.materials.ventGlowMat);
+      slat1.position.set(0, 0.1, 0.05);
+      const slat2 = new THREE.Mesh(this.geos.ventSlat, this.materials.ventGlowMat);
+      slat2.position.set(0, -0.1, 0.05);
+      ventGroup.add(grille);
+      ventGroup.add(slat1);
+      ventGroup.add(slat2);
+      ventGroup.position.set(side * (railX + 0.3), 1.6, ventZ);
+      ventGroup.rotation.y = side < 0 ? Math.PI / 2 : -Math.PI / 2;
+      chunkGroup.add(ventGroup);
+    }
+
+    // Energy cables running along the floor edges
+    for (let i = 0; i < 2; i++) {
+      const cableZ = zPos + 4 + i * (CONFIG.CHUNK_LENGTH / 2);
+      const side = i % 2 === 0 ? -1 : 1;
+      const cable = new THREE.Mesh(this.geos.energyCable, this.materials.cableMat);
+      cable.scale.set(1, 1, CONFIG.CHUNK_LENGTH / 2);
+      cable.position.set(side * (CONFIG.LANE_WIDTH * 1.5 + 0.2), 0.1, cableZ);
+      chunkGroup.add(cable);
+    }
+
+    // Glowing floor lights along the track
+    for (let i = 0; i < 4; i++) {
+      const lightZ = zPos + 1 + i * (CONFIG.CHUNK_LENGTH / 4);
+      const side = i % 2 === 0 ? -1 : 1;
+      const light = new THREE.Mesh(this.geos.floorLight, this.materials.floorLightMat);
+      light.position.set(side * (CONFIG.LANE_WIDTH * 1.5 + 0.1), 0.03, lightZ);
+      chunkGroup.add(light);
+    }
+
+    // Glowing pillars along the track
+    for (let i = 0; i < 3; i++) {
+      const pillarZ = zPos + 3 + i * (CONFIG.CHUNK_LENGTH / 3);
+      const side = i % 2 === 0 ? -1 : 1;
+      const pillarGroup = new THREE.Group();
+      const base = new THREE.Mesh(this.geos.glowPillarBase, this.materials.glowPillarBaseMat);
+      base.position.y = 0.1;
+      const shaft = new THREE.Mesh(this.geos.glowPillar, this.materials.glowPillarMat);
+      shaft.position.y = 1.35;
+      pillarGroup.add(base);
+      pillarGroup.add(shaft);
+      pillarGroup.position.set(side * (railX + 0.8), 0, pillarZ);
+      chunkGroup.add(pillarGroup);
+    }
+
+    // Floating holographic orbs
+    for (let i = 0; i < 2; i++) {
+      const orbZ = zPos + 8 + i * (CONFIG.CHUNK_LENGTH / 2);
+      const orb = new THREE.Mesh(this.geos.floatingOrb, this.materials.floatingOrbMat);
+      orb.position.set((Math.random() - 0.5) * 4, 3.5 + Math.random() * 1.5, orbZ);
+      orb.userData.floatOffset = Math.random() * Math.PI * 2;
+      orb.userData.baseY = orb.position.y;
+      chunkGroup.add(orb);
+      this.ambientOrbs.push(orb);
+    }
+
+    // Cables connecting side pillars
+    for (let i = 0; i < 2; i++) {
+      const cableZ = zPos + 10 + i * (CONFIG.CHUNK_LENGTH / 2);
+      const cable = new THREE.Mesh(this.geos.cable, this.materials.cableMat);
+      cable.scale.set(1, 1, (railX * 2 + 2) / 1);
+      cable.position.set(0, 4.5, cableZ);
+      chunkGroup.add(cable);
     }
   }
 
-  populateChunkContent(chunkGroup, zStart) {
+  populateChunkContent(chunkGroup, zStart, level = 1) {
     const laneXs = [CONFIG.LANE_WIDTH, 0, -CONFIG.LANE_WIDTH]; // 0=Left, 1=Center, 2=Right
     const chunkType = Math.random();
+
+    // Плотность препятствий растёт с уровнем (но не выше потолка)
+    const densityBonus = Math.min(
+      CONFIG.LEVEL_MAX_OBSTACLE_DENSITY,
+      (level - 1) * CONFIG.LEVEL_OBSTACLE_DENSITY
+    );
+    // Вероятность добавить "лишние" препятствия в сегмент
+    const extraChance = densityBonus;
 
     // 25% chance: Massive Floor Energy Wall (Requires Ceiling Gravity Inversion!)
     if (chunkType < 0.25) {
@@ -472,6 +651,69 @@ export class LevelGenerator {
         }
       }
     }
+
+    // Дополнительные препятствия на высоких уровнях (усложнение)
+    if (extraChance > 0 && Math.random() < extraChance) {
+      const extraZ = zStart + 8 + Math.random() * (CONFIG.CHUNK_LENGTH - 20);
+      const extraLane = Math.floor(Math.random() * 3);
+      const x = laneXs[extraLane];
+      const roll = Math.random();
+      if (roll < 0.4) {
+        // Дополнительный барьер (прыжок)
+        const barrierGrp = new THREE.Group();
+        barrierGrp.position.set(x, 0, extraZ);
+        const pL = new THREE.Mesh(this.geos.barrierPylon, this.materials.barrierFrame);
+        pL.position.set(-1.1, 0.4, 0);
+        const pR = new THREE.Mesh(this.geos.barrierPylon, this.materials.barrierFrame);
+        pR.position.set(1.1, 0.4, 0);
+        const bar = new THREE.Mesh(this.geos.barrierBar, this.materials.barrierHazard);
+        bar.position.set(0, 0.4, 0);
+        barrierGrp.add(pL); barrierGrp.add(pR); barrierGrp.add(bar);
+        chunkGroup.add(barrierGrp);
+        this.obstacles.push({
+          mesh: barrierGrp,
+          type: 'jump',
+          hitbox: { minX: x - 1.1, maxX: x + 1.1, minY: 0, maxY: 0.8, minZ: extraZ - 0.3, maxZ: extraZ + 0.3 }
+        });
+      } else if (roll < 0.7) {
+        // Дополнительные шипы
+        const spikeGrp = new THREE.Group();
+        spikeGrp.position.set(x, 0, extraZ);
+        for (let s = -0.5; s <= 0.5; s += 0.5) {
+          const base = new THREE.Mesh(this.geos.spikeBase, this.materials.spike);
+          base.position.set(s, 0.15, 0);
+          const tip = new THREE.Mesh(this.geos.spikeCone, this.materials.spikeTip);
+          tip.position.set(s, 0.55, 0);
+          spikeGrp.add(base);
+          spikeGrp.add(tip);
+        }
+        chunkGroup.add(spikeGrp);
+        this.obstacles.push({
+          mesh: spikeGrp,
+          type: 'spike',
+          hitbox: { minX: x - 0.9, maxX: x + 0.9, minY: 0, maxY: 1.1, minZ: extraZ - 0.3, maxZ: extraZ + 0.3 }
+        });
+      } else {
+        // Дополнительный высокий лазер (подкат)
+        const barrierGrp = new THREE.Group();
+        barrierGrp.position.set(x, 0, extraZ);
+        const pL = new THREE.Mesh(this.geos.barrierPylon, this.materials.barrierFrame);
+        pL.scale.set(1, 2.8, 1);
+        pL.position.set(-1.1, 1.4, 0);
+        const pR = new THREE.Mesh(this.geos.barrierPylon, this.materials.barrierFrame);
+        pR.scale.set(1, 2.8, 1);
+        pR.position.set(1.1, 1.4, 0);
+        const bar = new THREE.Mesh(this.geos.highBarrierBar, this.materials.barrierHazard);
+        bar.position.set(0, 2.0, 0);
+        barrierGrp.add(pL); barrierGrp.add(pR); barrierGrp.add(bar);
+        chunkGroup.add(barrierGrp);
+        this.obstacles.push({
+          mesh: barrierGrp,
+          type: 'slide',
+          hitbox: { minX: x - 1.1, maxX: x + 1.1, minY: 1.1, maxY: 2.9, minZ: extraZ - 0.3, maxZ: extraZ + 0.3 }
+        });
+      }
+    }
   }
 
   createCoinMesh(isGrav) {
@@ -491,6 +733,7 @@ export class LevelGenerator {
     this.obstacles = [];
     this.coins = [];
     this.powerups = [];
+    this.ambientOrbs = [];
     this.currentChunkIndex = 0;
 
     for (let i = 0; i < CONFIG.MAX_ACTIVE_CHUNKS; i++) {
@@ -500,14 +743,14 @@ export class LevelGenerator {
     }
   }
 
-  update(playerZ) {
+  update(playerZ, level = 1) {
     if (this.activeChunks.length > 0) {
       const firstChunk = this.activeChunks[0];
       if (playerZ > (firstChunk.zIndex + 1) * CONFIG.CHUNK_LENGTH + 10) {
         this.scene.remove(firstChunk.group);
         this.activeChunks.shift();
 
-        const newChunk = this.createChunk(this.currentChunkIndex);
+        const newChunk = this.createChunk(this.currentChunkIndex, level);
         this.activeChunks.push(newChunk);
         this.currentChunkIndex++;
       }
@@ -528,6 +771,16 @@ export class LevelGenerator {
         p.mesh.rotation.y = time * 2.5;
         p.mesh.rotation.x = time * 1.5;
       }
+    }
+
+    // Animate floating ambient orbs
+    for (let i = 0; i < this.ambientOrbs.length; i++) {
+      const orb = this.ambientOrbs[i];
+      const off = orb.userData.floatOffset || 0;
+      const baseY = orb.userData.baseY || 3.5;
+      orb.position.y = baseY + Math.sin(performance.now() * 0.001 + off) * 0.4;
+      orb.rotation.y = time * 1.5;
+      orb.rotation.x = time * 0.8;
     }
   }
 }

@@ -344,11 +344,77 @@ export class Player {
         0.15,
         0.2
       );
+      // Nitro flame trail (spark shape)
+      if (Math.random() < 0.5) {
+        this.particles.spawn(
+          this.x + (Math.random() - 0.5) * 0.4,
+          this.y - 0.3,
+          this.z - 0.6,
+          1,
+          Math.random() > 0.5 ? 0xffe600 : 0xff007f,
+          2,
+          0.12,
+          0.3,
+          'spark',
+          2
+        );
+      }
       if (this.nitroTimer <= 0) {
         this.isNitroActive = false;
       }
     } else {
       this.nitroEnergy = Math.min(CONFIG.NITRO_MAX_ENERGY, this.nitroEnergy + dt * CONFIG.NITRO_RECHARGE_RATE);
+    }
+
+    // 6b. Running dust puffs
+    if (this.isGrounded && !this.isSliding && Math.random() < 0.15) {
+      const dustY = this.gravityDirection === 1 ? 0.1 : CONFIG.CEILING_HEIGHT - 0.1;
+      this.particles.spawn(
+        this.x + (Math.random() - 0.5) * 0.3,
+        dustY,
+        this.z - 0.2,
+        1,
+        0x94a3b8,
+        0.8,
+        0.12,
+        0.4,
+        'sphere',
+        0.5
+      );
+    }
+
+    // 6c. Jetpack flame when airborne
+    if (!this.isGrounded && !this.isSliding && Math.random() < 0.4) {
+      const flameY = this.gravityDirection === 1 ? this.y - 0.4 : this.y + 0.4;
+      this.particles.spawn(
+        this.x + (Math.random() - 0.5) * 0.2,
+        flameY,
+        this.z - 0.3,
+        1,
+        this.isNitroActive ? 0xffe600 : 0x38bdf8,
+        1.5,
+        0.1,
+        0.25,
+        'spark',
+        1
+      );
+    }
+
+    // 6d. Slide sparks
+    if (this.isSliding && this.isGrounded && Math.random() < 0.3) {
+      const sparkY = this.gravityDirection === 1 ? 0.1 : CONFIG.CEILING_HEIGHT - 0.1;
+      this.particles.spawn(
+        this.x + (Math.random() - 0.5) * 0.4,
+        sparkY,
+        this.z - 0.2,
+        1,
+        0xf59e0b,
+        2,
+        0.08,
+        0.2,
+        'spark',
+        3
+      );
     }
 
     // 7. Gravity Visual Inversion Roll & Smooth Bank Angle

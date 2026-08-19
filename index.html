@@ -110,6 +110,11 @@
               <span class="text-[10px] uppercase font-bold tracking-widest text-cyan-400">Distance</span>
               <span id="hud-distance" class="font-gaming text-3xl sm:text-4xl font-black text-cyan-100 leading-none">0 <span class="text-lg text-cyan-400 font-normal">m</span></span>
             </div>
+
+            <div class="glass-panel px-3.5 py-2 rounded-2xl border-purple-500/40 neon-box-purple flex flex-col items-center">
+              <span class="text-[10px] uppercase font-bold tracking-widest text-purple-400">Level</span>
+              <span id="hud-level" class="font-gaming text-2xl sm:text-3xl font-black text-purple-300 leading-none">1</span>
+            </div>
             
             <div id="hud-combo-container" class="glass-panel px-3.5 py-2 rounded-2xl border-amber-500/40 neon-box-amber flex flex-col items-center transform transition-transform">
               <span class="text-[10px] uppercase font-bold tracking-widest text-amber-400">Combo</span>
@@ -383,6 +388,15 @@
               <div class="text-xs text-slate-400">Show virtual pads on mobile & touch</div>
             </div>
             <input id="toggle-touch-controls" type="checkbox" checked class="w-5 h-5 accent-cyan-400 cursor-pointer">
+          </div>
+
+          <!-- Hide Touch Buttons -->
+          <div class="flex justify-between items-center pt-2">
+            <div>
+              <div class="font-bold text-slate-200">Hide Control Buttons</div>
+              <div class="text-xs text-slate-400">Hide jump / gravity / boost buttons (use gestures)</div>
+            </div>
+            <input id="toggle-hide-touch-controls" type="checkbox" class="w-5 h-5 accent-cyan-400 cursor-pointer">
           </div>
 
           <!-- Reset Save Data -->

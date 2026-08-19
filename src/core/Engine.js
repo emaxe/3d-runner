@@ -37,9 +37,39 @@ export class Engine {
 
     // Lighting setup
     this.initLighting();
+    this.initStarfield();
 
     // Resize listener
     window.addEventListener('resize', () => this.onWindowResize());
+  }
+
+  initStarfield() {
+    // Distant starfield points for depth
+    this.starGroup = new THREE.Group();
+    const starGeo = new THREE.BufferGeometry();
+    const starCount = 400;
+    const positions = new Float32Array(starCount * 3);
+    const colors = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 300;
+      positions[i * 3 + 1] = Math.random() * 60 + 5;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 300;
+      const c = 0.5 + Math.random() * 0.5;
+      colors[i * 3] = c;
+      colors[i * 3 + 1] = c;
+      colors[i * 3 + 2] = c;
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    starGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const starMat = new THREE.PointsMaterial({
+      size: 0.12,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.8,
+      sizeAttenuation: true
+    });
+    this.stars = new THREE.Points(starGeo, starMat);
+    this.scene.add(this.stars);
   }
 
   initLighting() {
@@ -49,6 +79,11 @@ export class Engine {
     this.dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
     this.dirLight.position.set(15, 30, 20);
     this.scene.add(this.dirLight);
+
+    // Rim/back light for richer silhouette definition
+    this.rimLight = new THREE.DirectionalLight(0x38bdf8, 0.5);
+    this.rimLight.position.set(-10, 15, -20);
+    this.scene.add(this.rimLight);
 
     // Hemisphere light for richer low poly ambient shading
     this.hemiLight = new THREE.HemisphereLight(0x38bdf8, 0x0f172a, 0.4);
@@ -76,6 +111,7 @@ export class Engine {
     this.scene.fog.color.setHex(biome.fogColor);
     this.scene.fog.density = biome.fogDensity || 0.015;
     this.dirLight.color.setHex(biome.lightColor || 0xffffff);
+    this.rimLight.color.setHex(biome.accentColor || 0x38bdf8);
   }
 
   onWindowResize() {
@@ -87,6 +123,10 @@ export class Engine {
   }
 
   render() {
+    // Slowly rotate starfield for subtle parallax depth
+    if (this.stars) {
+      this.stars.rotation.y += 0.0001;
+    }
     this.renderer.render(this.scene, this.camera);
   }
 }

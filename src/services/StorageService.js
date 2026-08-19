@@ -37,7 +37,8 @@ export class StorageService {
         sfxVolume: 80,
         musicVolume: 70,
         quality: 'high', // 'low', 'med', 'high'
-        showTouchControls: true
+        showTouchControls: true,
+        hideTouchControls: false
       }
     };
   }

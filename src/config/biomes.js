@@ -12,7 +12,9 @@ export const BIOMES = [
     accentColor: 0x06b6d4,
     ceilingColor: 0x064e3b,
     lightColor: 0x38bdf8,
-    hazardColor: 0xf59e0b
+    hazardColor: 0xf59e0b,
+    particleColor: 0x06b6d4,
+    glowColor: 0x34d399
   },
   {
     id: 'solar_dunes',
@@ -24,7 +26,9 @@ export const BIOMES = [
     accentColor: 0xfbbf24,
     ceilingColor: 0x78350f,
     lightColor: 0xfef08a,
-    hazardColor: 0xef4444
+    hazardColor: 0xef4444,
+    particleColor: 0xfbbf24,
+    glowColor: 0xfef08a
   },
   {
     id: 'glacial_peaks',
@@ -36,7 +40,9 @@ export const BIOMES = [
     accentColor: 0xa5f3fc,
     ceilingColor: 0x0369a1,
     lightColor: 0xe0f2fe,
-    hazardColor: 0xc084fc
+    hazardColor: 0xc084fc,
+    particleColor: 0x38bdf8,
+    glowColor: 0xe0f2fe
   },
   {
     id: 'cyber_volcano',
@@ -48,6 +54,8 @@ export const BIOMES = [
     accentColor: 0xf43f5e,
     ceilingColor: 0x450a0a,
     lightColor: 0xfca5a5,
-    hazardColor: 0xfacc15
+    hazardColor: 0xfacc15,
+    particleColor: 0xf43f5e,
+    glowColor: 0xfacc15
   }
 ];

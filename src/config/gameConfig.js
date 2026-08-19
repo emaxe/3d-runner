@@ -39,6 +39,16 @@ export const CONFIG = {
   BOSS_INTERVAL_METERS: 400,
   BIOME_INTERVAL_METERS: 650,
 
+  // Level progression (после каждого босса — новый уровень с усложнением)
+  LEVEL_BOSS_INTERVAL_DECREASE: 25, // на сколько метров сокращается дистанция до босса за уровень
+  LEVEL_MIN_BOSS_INTERVAL: 220, // минимальная дистанция до босса
+  LEVEL_SPEED_BONUS: 0.6, // прибавка к базовой скорости за уровень
+  LEVEL_MAX_SPEED_BONUS: 6.0, // потолок прибавки скорости
+  LEVEL_OBSTACLE_DENSITY: 0.08, // прибавка плотности препятствий за уровень
+  LEVEL_MAX_OBSTACLE_DENSITY: 0.5, // потолок плотности
+  LEVEL_BOSS_HP_BONUS: 30, // прибавка HP босса за уровень
+  LEVEL_BOSS_ATTACK_BONUS: 0.08, // прибавка к скорости атак босса за уровень
+
   // Object Pooling
   PARTICLE_POOL_SIZE: 160
 };

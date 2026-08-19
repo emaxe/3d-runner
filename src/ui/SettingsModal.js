@@ -95,6 +95,25 @@ export class SettingsModal {
       });
     }
 
+    // Hide Touch Buttons checkbox
+    const hideTouchToggle = document.getElementById('toggle-hide-touch-controls');
+    if (hideTouchToggle) {
+      hideTouchToggle.checked = !!this.game.storage.data.settings.hideTouchControls;
+      const touchOverlay = document.getElementById('hud-touch-controls');
+      if (touchOverlay) {
+        touchOverlay.style.display = hideTouchToggle.checked ? 'none' : (this.game.storage.data.settings.showTouchControls ? 'flex' : 'none');
+      }
+
+      hideTouchToggle.addEventListener('change', (e) => {
+        const val = e.target.checked;
+        if (touchOverlay) {
+          touchOverlay.style.display = val ? 'none' : (this.game.storage.data.settings.showTouchControls ? 'flex' : 'none');
+        }
+        this.game.storage.data.settings.hideTouchControls = val;
+        this.game.storage.save();
+      });
+    }
+
     // Reset Save Progress
     const resetBtn = document.getElementById('btn-reset-save');
     if (resetBtn) {

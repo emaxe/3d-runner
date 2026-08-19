@@ -182,12 +182,15 @@ export class UIManager {
     }, 1400);
   }
 
-  updateHUD(distance, coins, player, boss) {
+  updateHUD(distance, coins, player, boss, level = 1) {
     // Distance & Multiplier
     const distEl = document.getElementById('hud-distance');
     if (distEl) {
       distEl.innerHTML = `${Math.floor(distance)} <span class="text-lg text-cyan-400 font-normal">m</span>`;
     }
+
+    const levelEl = document.getElementById('hud-level');
+    if (levelEl) levelEl.textContent = level;
 
     const coinsEl = document.getElementById('hud-coins');
     if (coinsEl) coinsEl.textContent = coins;

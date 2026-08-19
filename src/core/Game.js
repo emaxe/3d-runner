@@ -51,6 +51,7 @@ export class Game {
     this.nextBossDistance = CONFIG.BOSS_INTERVAL_METERS;
     this.nextBiomeDistance = CONFIG.BIOME_INTERVAL_METERS;
     this.currentBiomeIndex = 0;
+    this.level = 1; // текущий уровень (растёт после каждого босса)
 
     // 6. Bind Input to Player actions
     this.bindInputs();
@@ -118,7 +119,7 @@ export class Game {
 
     const touchOverlay = document.getElementById('hud-touch-controls');
     if (touchOverlay) {
-      touchOverlay.style.display = s.showTouchControls ? 'flex' : 'none';
+      touchOverlay.style.display = s.hideTouchControls ? 'none' : (s.showTouchControls ? 'flex' : 'none');
     }
 
     const skin = SKINS.find((sk) => sk.id === this.storage.data.selectedSkin) || SKINS[0];
@@ -144,8 +145,7 @@ export class Game {
     this.nextBossDistance = CONFIG.BOSS_INTERVAL_METERS;
     this.nextBiomeDistance = CONFIG.BIOME_INTERVAL_METERS;
     this.currentBiomeIndex = 0;
-
-    // Apply shop upgrades & boosts
+    this.level = 1;
     const hasStartShield = (this.storage.data.upgrades.shield_start || 0) > 0;
     this.player.reset(hasStartShield);
 
@@ -178,6 +178,28 @@ export class Game {
 
     this.audio.startMusic();
     this.audio.playSound('powerup');
+  }
+
+  /**
+   * Переход на следующий уровень после убийства босса.
+   * Игрок продолжает бежать, но сложность растёт: скорость выше,
+   * препятствий больше, следующий босс ближе и сильнее.
+   */
+  startNextLevel() {
+    this.level++;
+    this.boss.active = false;
+
+    // Следующий босс — через уменьшенный интервал (но не меньше минимума)
+    const interval = Math.max(
+      CONFIG.LEVEL_MIN_BOSS_INTERVAL,
+      CONFIG.BOSS_INTERVAL_METERS - (this.level - 1) * CONFIG.LEVEL_BOSS_INTERVAL_DECREASE
+    );
+    this.nextBossDistance = this.distance + interval;
+
+    // Уведомление о новом уровне
+    this.ui.showAlert(`LEVEL ${this.level}!`, 'Speed Up & More Obstacles');
+    this.audio.playSound('powerup');
+    this.cameraManager.shake(0.3);
   }
 
   pauseGame() {
@@ -269,6 +291,25 @@ export class Game {
       0.35
     );
 
+    // Occasional confetti burst on coin pickup
+    if (Math.random() < 0.12) {
+      const confettiColors = [0x00f0ff, 0xff007f, 0xffe600, 0x00ff66, 0x9d00ff, 0xffffff];
+      for (let ci = 0; ci < 8; ci++) {
+        this.particles.spawn(
+          coin.mesh.position.x,
+          coin.mesh.position.y,
+          coin.mesh.position.z,
+          1,
+          confettiColors[Math.floor(Math.random() * confettiColors.length)],
+          3 + Math.random() * 2,
+          0.1,
+          0.5,
+          'sphere',
+          2
+        );
+      }
+    }
+
     // Combo streak
     this.player.comboScoreStreak++;
     if (this.player.comboScoreStreak >= 10 && this.player.combo < 10) {
@@ -326,8 +367,12 @@ export class Game {
     this.lastFrameTime = timestamp;
 
     if (this.state === 'PLAYING') {
-      // 1. Progressive speed increase
-      this.runSpeed = Math.min(CONFIG.MAX_SPEED, this.runSpeed + CONFIG.SPEED_ACCELERATION * dt);
+      // 1. Progressive speed increase (базовая скорость растёт с уровнем)
+      const levelSpeedBonus = Math.min(
+        CONFIG.LEVEL_MAX_SPEED_BONUS,
+        (this.level - 1) * CONFIG.LEVEL_SPEED_BONUS
+      );
+      this.runSpeed = Math.min(CONFIG.MAX_SPEED + levelSpeedBonus, this.runSpeed + CONFIG.SPEED_ACCELERATION * dt);
 
       let effectiveSpeed = this.runSpeed;
       if (this.player.isNitroActive) effectiveSpeed *= CONFIG.NITRO_SPEED_MULTIPLIER;
@@ -346,9 +391,40 @@ export class Game {
 
       // 4. Update Subsystems
       this.player.update(dt, effectiveSpeed);
-      this.levelGen.update(this.player.z);
+      this.input.setOnCeiling(this.player.gravityDirection === -1);
+      this.levelGen.update(this.player.z, this.level);
       this.particles.update(dt);
       this.collision.update(dt);
+
+      // 4b. Speed lines at high velocity
+      if (effectiveSpeed > 24 && Math.random() < 0.3) {
+        this.particles.spawn(
+          this.player.x + (Math.random() - 0.5) * 6,
+          this.player.y + (Math.random() - 0.5) * 4,
+          this.player.z - 8 - Math.random() * 6,
+          1,
+          Math.random() > 0.5 ? 0x38bdf8 : 0xff007f,
+          0,
+          0.06,
+          0.25,
+          'spark',
+          0
+        );
+      }
+      if (this.player.isNitroActive && Math.random() < 0.5) {
+        this.particles.spawn(
+          this.player.x + (Math.random() - 0.5) * 6,
+          this.player.y + (Math.random() - 0.5) * 4,
+          this.player.z - 8 - Math.random() * 6,
+          1,
+          0xffe600,
+          0,
+          0.08,
+          0.3,
+          'spark',
+          0
+        );
+      }
 
       // 5. Biome Transitions
       if (this.distance >= this.nextBiomeDistance) {
@@ -362,7 +438,7 @@ export class Game {
 
       // 6. Mini-Boss Encounter Spawning & Combat
       if (this.distance >= this.nextBossDistance && !this.boss.active) {
-        this.boss.spawn(this.player.z, this.currentBiomeIndex);
+        this.boss.spawn(this.player.z, this.currentBiomeIndex, this.level);
         this.nextBossDistance += CONFIG.BOSS_INTERVAL_METERS;
         this.ui.showAlert('WARNING: BOSS DETECTED!', this.boss.name);
         this.audio.bossMusicMode = true;
@@ -380,6 +456,24 @@ export class Game {
           this.player.nitroEnergy = CONFIG.NITRO_MAX_ENERGY;
           this.ui.showAlert('BOSS DEFEATED!', '+100 Coins & Shield Boost');
           this.cameraManager.shake(0.6);
+          // Confetti celebration
+          const confettiColors = [0x00f0ff, 0xff007f, 0xffe600, 0x00ff66, 0x9d00ff, 0xffffff];
+          for (let ci = 0; ci < 30; ci++) {
+            this.particles.spawn(
+              this.player.x + (Math.random() - 0.5) * 4,
+              this.player.y + 2 + Math.random() * 2,
+              this.player.z,
+              1,
+              confettiColors[Math.floor(Math.random() * confettiColors.length)],
+              3 + Math.random() * 3,
+              0.12,
+              0.6,
+              'sphere',
+              2
+            );
+          }
+          // Новый уровень: снова долгий забег с препятствиями, затем следующий босс
+          this.startNextLevel();
         }
       }
 
@@ -387,7 +481,7 @@ export class Game {
       this.cameraManager.update(dt, this.player, this.player.isNitroActive);
 
       // 8. Update HUD
-      this.ui.updateHUD(this.distance, this.coinsGathered, this.player, this.boss);
+      this.ui.updateHUD(this.distance, this.coinsGathered, this.player, this.boss, this.level);
     } else if (this.state === 'GAMEOVER') {
       const dtSlow = dt * 0.75;
       this.player.updateDeath(dtSlow);
